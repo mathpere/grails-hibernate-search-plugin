@@ -1,0 +1,15 @@
+*/target
+target
+*.project
+*.settings
+*.classpath
+*.iml
+*.ipr
+*.iws
+*.swp
+*.log
+*/rebel.xml
+*/lucene
+lucene
+.idea
+.DS_Store
