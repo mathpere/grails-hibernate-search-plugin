@@ -49,7 +49,7 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
 
             if ( !properties.containsKey(INDEX_BASE) ) {
                 def sep = File.separator
-                properties.setProperty(INDEX_BASE, "${System.properties['user.home']}${sep}.grails${sep}projects${sep}${grailsApplication.metadata["app.name"]}${sep}lucene-index${sep}${grails.util.GrailsUtil.getEnvironment()}")
+                properties.setProperty(INDEX_BASE, "${System.properties['user.home']}${sep}.grails${sep}${grailsApplication.metadata["app.grails.version"]}${sep}projects${sep}${grailsApplication.metadata["app.name"]}${sep}lucene-index${sep}${grails.util.GrailsUtil.getEnvironment()}")
             }
 
             SearchMapping searchMapping = new org.hibernate.search.cfg.SearchMapping()
