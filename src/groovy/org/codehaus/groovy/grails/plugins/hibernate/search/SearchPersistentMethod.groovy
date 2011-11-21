@@ -32,16 +32,9 @@ class SearchPersistentMethod extends AbstractStaticPersistentMethod {
 
     @Override
     protected Object doInvokeInternal(Class clazz, String methodName, Closure additionalCriteria, Object[] arguments) {
-
-        if ( !arguments || arguments.size() != 1 || !Closure.isAssignableFrom(arguments[0].class) ) {
-            throw new MissingMethodException(methodName, clazz, arguments)
-        }
-
-        super.getHibernateTemplate().execute(new HibernateCallback() {
-            public Object doInHibernate(Session session) {
-                new HibernateSearchQueryBuilder(clazz, session).list(arguments[0])
-            }
-        })
+        hibernateTemplate.execute({ Session session ->
+            new HibernateSearchQueryBuilder(clazz, session)
+        } as HibernateCallback)
     }
 
     @Override

@@ -281,9 +281,9 @@ class HibernateSearchQueryBuilder {
             }
         }
 
-        if ( name == 'list' ) {
+        FullTextQuery fullTextQuery = fullTextSession.createFullTextQuery(root.createQuery(), clazz)
 
-            FullTextQuery fullTextQuery = fullTextSession.createFullTextQuery(root.createQuery(), clazz)
+        if ( name == 'list' ) {
 
             if ( maxResults > 0 ) {
                 fullTextQuery.setMaxResults(maxResults)
@@ -301,6 +301,9 @@ class HibernateSearchQueryBuilder {
             }
 
             fullTextQuery.list()
+
+        } else if ( name == 'count' ) {
+            fullTextQuery.resultSize
         }
     }
 
