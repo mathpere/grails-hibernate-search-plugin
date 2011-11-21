@@ -90,7 +90,7 @@ class MyDomainClass {
 
 This static property indicates which fields should be indexed and describes how the field has to be indexed.
 
-Also, the plugin let you to mark your domain classes as indexable with the Hibernate Search annotations.
+Also, the plugin lets you to mark your domain classes as indexable with the Hibernate Search annotations.
 
 ```groovy
 @Indexed
@@ -138,7 +138,7 @@ The plugin provides you dynamic method to search for indexed entities.
 
 #### Retrieving the results
 
-All indexed domain classes provides .search() method which let you to list the results.
+All indexed domain classes provides .search() method which lets you to list the results.
 The plugin provides a search DSL for simplifying the way you can search. Here is what it looks like with the search DSL:
 
 ```groovy
