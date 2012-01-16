@@ -25,16 +25,16 @@ import org.hibernate.search.query.dsl.QueryBuilder
 class HibernateSearchQueryBuilder {
 
     private static final def SORT_TYPES = [
-            (Integer): org.apache.lucene.search.SortField.INT,
-            (Double): org.apache.lucene.search.SortField.DOUBLE,
-            (Float): org.apache.lucene.search.SortField.FLOAT,
-            (String): org.apache.lucene.search.SortField.STRING_VAL,
-            (Long): org.apache.lucene.search.SortField.LONG,
-            (BigDecimal): org.apache.lucene.search.SortField.DOUBLE,
+            (Integer): SortField.INT,
+            (Double): SortField.DOUBLE,
+            (Float): SortField.FLOAT,
+            (String): SortField.STRING_VAL,
+            (Long): SortField.LONG,
+            (BigDecimal): SortField.DOUBLE,
 
             // see Emmanuel Bernard's comment
             // https://hibernate.onjira.com/browse/HSEARCH-97
-            (Date): org.apache.lucene.search.SortField.STRING]
+            (Date): SortField.STRING]
 
     private static interface Component {
         def createQuery()
