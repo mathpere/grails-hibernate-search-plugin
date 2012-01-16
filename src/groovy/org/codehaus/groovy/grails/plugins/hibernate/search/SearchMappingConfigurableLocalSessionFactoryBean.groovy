@@ -19,6 +19,10 @@ import org.codehaus.groovy.grails.commons.ClassPropertyFetcher
 import org.codehaus.groovy.grails.orm.hibernate.ConfigurableLocalSessionFactoryBean
 import org.hibernate.HibernateException
 import org.hibernate.cfg.Configuration
+import org.hibernate.search.Environment
+import org.hibernate.search.annotations.Index
+import org.hibernate.search.annotations.Resolution
+import org.hibernate.search.annotations.Store
 import org.hibernate.search.cfg.SearchMapping
 import org.springframework.jndi.JndiTemplate
 
@@ -61,7 +65,7 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
 
                 if ( searchCallable ) {
 
-                    currentMapping = searchMapping.entity(it.clazz).indexed().property("id", java.lang.annotation.ElementType.FIELD).documentId()
+                    currentMapping = searchMapping.entity(it.clazz).indexed().property("id", ElementType.FIELD).documentId()
 
                     searchCallable.delegate = this
                     searchCallable.resolveStrategy = Closure.DELEGATE_FIRST
@@ -69,7 +73,7 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
                 }
             }
 
-            properties.put(org.hibernate.search.Environment.MODEL_MAPPING, searchMapping)
+            properties.put(Environment.MODEL_MAPPING, searchMapping)
 
         } catch (Exception e) {
             logger.error("Error while indexing entities", e)
@@ -94,11 +98,11 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
             currentMapping = currentMapping.property(name, ElementType.FIELD).field()
 
             if ( args.index ) {
-                currentMapping = currentMapping.index(org.hibernate.search.annotations.Index."${args.index.toUpperCase()}")
+                currentMapping = currentMapping.index(Index."${args.index.toUpperCase()}")
             }
 
             if ( args.store ) {
-                currentMapping = currentMapping.store(org.hibernate.search.annotations.Store."${args.store.toUpperCase()}")
+                currentMapping = currentMapping.store(Store."${args.store.toUpperCase()}")
             }
 
             if ( args.numeric ) {
@@ -106,7 +110,20 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
             }
 
             if ( args.date ) {
-                currentMapping = currentMapping.dateBridge(org.hibernate.search.annotations.Resolution."${args.date.toUpperCase()}")
+                currentMapping = currentMapping.dateBridge(Resolution."${args.date.toUpperCase()}")
+            }
+
+            if ( args.bridge ) {
+
+                currentMapping = currentMapping.bridge(args.bridge["class"])
+
+                def params = args.bridge["params"]
+
+                if ( params ) {
+                    params.each {k, v ->
+                        currentMapping = currentMapping.param(k.toString(), v.toString())
+                    }
+                }
             }
         }
     }
