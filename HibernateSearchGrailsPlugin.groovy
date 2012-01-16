@@ -5,7 +5,7 @@ import org.hibernate.search.annotations.Indexed
 import org.springframework.core.annotation.AnnotationUtils
 
 class HibernateSearchGrailsPlugin {
-    def version = "0.2"
+    def version = "0.3"
     def grailsVersion = "2.0 > *"
     def loadAfter = ['hibernate']
     def title = "Hibernate Search Plugin"
