@@ -67,6 +67,7 @@ class MyDomainClass {
     String title
     Status status
     Double price
+    Integer someInteger
 
     enum Status {
         DISABLED, PENDING, ENABLED
@@ -83,6 +84,7 @@ class MyDomainClass {
         status index: 'un_tokenized'
         categories indexEmbedded: true
         price numeric: 2
+        someInteger index: 'un_tokenized', bridge: ['class': PaddedIntegerBridge, params: ['padding': 10]]
     }
 
 }
@@ -118,6 +120,10 @@ class MyDomainClass {
     @Field 
     @NumericField( precisionStep = 2)
     Double price
+    
+    @Field(index=Index.UN_TOKENIZED)
+    @FieldBridge(impl = PaddedIntegerBridge.class, params = @Parameter(name="padding", value="10"))
+    Integer someInteger
 
     enum Status {
         DISABLED, PENDING, ENABLED
