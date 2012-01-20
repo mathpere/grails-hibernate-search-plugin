@@ -33,6 +33,8 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
     private static final String INDEX_BASE_JNDI_NAME = "hibernate.search.default.indexBaseJndiName"
 
     def currentMapping
+    def currentSearchMapping
+    def currentSearchProperties
 
     @Override
     protected void postProcessConfiguration(Configuration config) throws HibernateException {
@@ -56,20 +58,44 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
                 properties.setProperty(INDEX_BASE, "${System.properties['user.home']}${sep}.grails${sep}${grailsApplication.metadata["app.grails.version"]}${sep}projects${sep}${grailsApplication.metadata["app.name"]}${sep}lucene-index${sep}${grails.util.GrailsUtil.getEnvironment()}")
             }
 
-            SearchMapping searchMapping = new org.hibernate.search.cfg.SearchMapping()
+            def searchMapping = new SearchMapping()
 
             grailsApplication.domainClasses.each {
 
                 ClassPropertyFetcher cpf = ClassPropertyFetcher.forClass(it.clazz);
-                def searchCallable = cpf.getStaticPropertyValue("search", Closure)
+                def searchClosure = cpf.getStaticPropertyValue("search", Closure)
 
-                if ( searchCallable ) {
+                if ( searchClosure ) {
 
-                    currentMapping = searchMapping.entity(it.clazz).indexed().property("id", ElementType.FIELD).documentId()
+                    currentSearchMapping = [:]
+                    currentSearchProperties = [:]
 
-                    searchCallable.delegate = this
-                    searchCallable.resolveStrategy = Closure.DELEGATE_FIRST
-                    searchCallable.call()
+                    searchClosure.delegate = this
+                    searchClosure.resolveStrategy = Closure.DELEGATE_FIRST
+                    searchClosure.call()
+
+                    currentMapping = searchMapping.entity(it.clazz)
+
+                    def classBridge = currentSearchProperties.classBridge
+
+                    if ( classBridge ) {
+
+                        currentMapping = currentMapping.classBridge(classBridge['class'])
+
+                        def params = classBridge["params"]
+
+                        if ( params ) {
+                            params.each {k, v ->
+                                currentMapping = currentMapping.param(k.toString(), v.toString())
+                            }
+                        }
+                    }
+
+                    currentMapping = currentMapping.indexed().property("id", ElementType.FIELD).documentId()
+
+                    currentSearchMapping.each {fieldName, args ->
+                        mapField(fieldName, args)
+                    }
                 }
             }
 
@@ -80,8 +106,15 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
         }
     }
 
-    public Object invokeMethod(String name, Object obj) {
+    def propertyMissing(String name, value) {
+        currentSearchProperties[name] = value
+    }
 
+    def invokeMethod(String name, obj) {
+        currentSearchMapping[name] = obj
+    }
+
+    def mapField(String name, obj) {
         obj = obj.class.isArray() ? obj : [obj]
 
         def args = obj[0] ?: [:]
