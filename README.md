@@ -76,6 +76,7 @@ class MyDomainClass {
     static hasMany = [categories: Category]
 
     static search = {
+        // fields
         author index: 'tokenized'
         body index: 'tokenized'
         publishedDate date: 'day'
@@ -85,6 +86,9 @@ class MyDomainClass {
         categories indexEmbedded: true
         price numeric: 2
         someInteger index: 'un_tokenized', bridge: ['class': PaddedIntegerBridge, params: ['padding': 10]]
+
+        // support for classBridge
+        classBridge = ['class': MyClassBridge, params: [myParam: "4"]]
     }
 
 }
@@ -96,6 +100,9 @@ Also, the plugin lets you to mark your domain classes as indexable with the Hibe
 
 ```groovy
 @Indexed
+@ClassBridge(
+     impl = MyClassBridge,
+     params = @Parameter( name="myParam", value="4" ) )
 class MyDomainClass {
 
     @Field(index=Index.TOKENIZED)
