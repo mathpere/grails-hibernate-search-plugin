@@ -93,8 +93,8 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
 
                     currentMapping = currentMapping.indexed().property("id", ElementType.FIELD).documentId()
 
-                    currentSearchMapping.each {fieldName, args ->
-                        mapField(fieldName, args)
+                    currentSearchMapping.each {fieldName, argsList ->
+                        argsList.each {args -> mapField(fieldName, args)}
                     }
                 }
             }
@@ -111,7 +111,8 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
     }
 
     def invokeMethod(String name, obj) {
-        currentSearchMapping[name] = obj
+        currentSearchMapping[name] = currentSearchMapping[name] ?: []
+        currentSearchMapping[name] << obj
     }
 
     def mapField(String name, obj) {
@@ -128,7 +129,7 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
             currentMapping = currentMapping.property(name, ElementType.FIELD).containedIn()
 
         } else {
-            currentMapping = currentMapping.property(name, ElementType.FIELD).field()
+            currentMapping = currentMapping.property(name, ElementType.FIELD).field().name(args.name ?: name)
 
             if ( args.index ) {
                 currentMapping = currentMapping.index(Index."${args.index.toUpperCase()}")
