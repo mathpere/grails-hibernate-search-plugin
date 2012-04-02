@@ -105,6 +105,10 @@ Also, the plugin lets you to mark your domain classes as indexable with the Hibe
      params = @Parameter( name="myParam", value="4" ) )
 class MyDomainClass {
 
+    // when using annotations, id is required to define DocumentId
+    @DocumentId
+    Long id
+
     @Field(index=Index.TOKENIZED)
     String author
     
