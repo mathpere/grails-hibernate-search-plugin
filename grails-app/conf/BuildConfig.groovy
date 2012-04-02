@@ -18,7 +18,9 @@ grails.project.dependency.resolution = {
     }
 
     dependencies {
-        compile('org.hibernate:hibernate-search:3.4.1.Final')
+        compile('org.hibernate:hibernate-search:3.4.1.Final') {
+            excludes "hibernate-core"
+        }
     }
 
     plugins {
