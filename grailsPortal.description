@@ -31,7 +31,7 @@ You can override this configuration in your Datasource.groovy
 
     // hibernate search configuration:
     search.default.directory_provider = 'filesystem'
-    hibernate.search.default.indexBase = '/path/to/your/indexes'
+    search.default.indexBase = '/path/to/your/indexes'
 
 }
 {code}
@@ -150,7 +150,8 @@ class SomeController {
 
    def myAction = { MyCommand command ->
 
-      def page = [max: Math.min(params.max ? params.int('max') : 10, 50), offset: params.offset ? params.int('offset') : 0]
+      def page = [max: Math.min(params.max ? params.int('max') : 10, 50), 
+                           offset: params.offset ? params.int('offset') : 0]
 
       def myDomainClasses = MyDomainClass.search().list {
 
