@@ -31,7 +31,7 @@ You can override this configuration in your Datasource.groovy
 
     // hibernate search configuration:
     search.default.directory_provider = 'filesystem'
-    hibernate.search.default.indexBase = '/path/to/your/indexes'
+    search.default.indexBase = '/path/to/your/indexes'
 
 }
 ```
