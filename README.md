@@ -73,7 +73,7 @@ class MyDomainClass {
         DISABLED, PENDING, ENABLED
     }
 
-    static hasMany = [categories: Category]
+    static hasMany = [categories: Category, items: Item]
 
     static search = {
         // fields
@@ -84,6 +84,7 @@ class MyDomainClass {
         title index: 'tokenized'
         status index: 'un_tokenized'
         categories indexEmbedded: true
+        items indexEmbedded: [depth: 2] // configure the depth indexing
         price numeric: 2
         someInteger index: 'un_tokenized', bridge: ['class': PaddedIntegerBridge, params: ['padding': 10]]
 
@@ -143,7 +144,10 @@ class MyDomainClass {
     @IndexedEmbedded
     Set categories
 
-    static hasMany = [categories: Category]
+    @IndexedEmbedded(depth = 2)
+    Set items
+
+    static hasMany = [categories: Category, items: Item]
 
 }
 ```
