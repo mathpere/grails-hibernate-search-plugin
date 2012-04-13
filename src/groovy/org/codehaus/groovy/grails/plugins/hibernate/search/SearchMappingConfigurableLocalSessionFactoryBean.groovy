@@ -124,7 +124,7 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
 
             currentMapping = currentMapping.property(name, ElementType.FIELD).indexEmbedded()
 
-            if ( args.indexEmbedded != true ) {
+            if ( args.indexEmbedded instanceof Map) {
                 def depth = args.indexEmbedded["depth"]
 
                 if ( depth ) {
