@@ -24,20 +24,19 @@ import org.hibernate.search.query.dsl.QueryBuilder
 
 class HibernateSearchQueryBuilder {
 
-    private static final def SORT_TYPES = [
-            (Integer): SortField.INT,
-            (Double): SortField.DOUBLE,
-            (Float): SortField.FLOAT,
-            (String): SortField.STRING_VAL,
-            (Long): SortField.LONG,
-            (BigDecimal): SortField.DOUBLE,
+    private static final def SORT_TYPES = [( Integer ): SortField.INT,
+            ( Double ): SortField.DOUBLE,
+            ( Float ): SortField.FLOAT,
+            ( String ): SortField.STRING_VAL,
+            ( Long ): SortField.LONG,
+            ( BigDecimal ): SortField.DOUBLE,
 
             // see Emmanuel Bernard's comment
             // https://hibernate.onjira.com/browse/HSEARCH-97
-            (Date): SortField.STRING]
+            ( Date ): SortField.STRING]
 
     private static interface Component {
-        def createQuery()
+        def createQuery( )
     }
 
     private static abstract class Composite implements Component {
@@ -46,7 +45,7 @@ class HibernateSearchQueryBuilder {
         def parent
         def children = []
 
-        def leftShift(component) {
+        def leftShift( component ) {
             assert component instanceof Component: "component should be an instance of Component"
             component.parent = this
             children << component
@@ -56,19 +55,19 @@ class HibernateSearchQueryBuilder {
     private static abstract class Leaf extends Composite {
         def field
 
-        def leftShift(component) {
-            throw new UnsupportedOperationException("${this.class.name} is a leaf")
+        def leftShift( component ) {
+            throw new UnsupportedOperationException( "${this.class.name} is a leaf" )
         }
     }
 
     private static class MustNotComponent extends Composite {
-        def createQuery() {
+        def createQuery( ) {
             if ( children ) {
 
                 def query = queryBuilder.bool()
 
                 children*.createQuery().each {
-                    query = query.must(it).not()
+                    query = query.must( it ).not()
                 }
 
                 query.createQuery()
@@ -79,13 +78,13 @@ class HibernateSearchQueryBuilder {
         }
     }
     private static class MustComponent extends Composite {
-        def createQuery() {
+        def createQuery( ) {
             if ( children ) {
 
                 def query = queryBuilder.bool()
 
                 children*.createQuery().each {
-                    query = query.must(it)
+                    query = query.must( it )
                 }
 
                 query.createQuery()
@@ -97,13 +96,13 @@ class HibernateSearchQueryBuilder {
     }
 
     private static class ShouldComponent extends Composite {
-        def createQuery() {
+        def createQuery( ) {
             if ( children ) {
 
                 def query = queryBuilder.bool()
 
                 children*.createQuery().each {
-                    query = query.should(it)
+                    query = query.should( it )
                 }
 
                 query.createQuery()
@@ -117,44 +116,44 @@ class HibernateSearchQueryBuilder {
     private static class BelowComponent extends Leaf {
         def below
 
-        def createQuery() { queryBuilder.range().onField(field).below(below).createQuery() }
+        def createQuery( ) { queryBuilder.range().onField( field ).below( below ).createQuery() }
     }
 
     private static class AboveComponent extends Leaf {
         def above
 
-        def createQuery() { queryBuilder.range().onField(field).above(above).createQuery() }
+        def createQuery( ) { queryBuilder.range().onField( field ).above( above ).createQuery() }
     }
 
     private static class KeywordComponent extends Leaf {
         def matching
 
-        def createQuery() { queryBuilder.keyword().onField(field).matching(matching).createQuery() }
+        def createQuery( ) { queryBuilder.keyword().onField( field ).matching( matching ).createQuery() }
     }
 
     private static class BetweenComponent extends Leaf {
         def from
         def to
 
-        def createQuery() { queryBuilder.range().onField(field).from(from).to(to).createQuery() }
+        def createQuery( ) { queryBuilder.range().onField( field ).from( from ).to( to ).createQuery() }
     }
 
     private static class FuzzyComponent extends Leaf {
         def matching
 
-        def createQuery() { queryBuilder.keyword().fuzzy().onField(field).matching(matching).createQuery() }
+        def createQuery( ) { queryBuilder.keyword().fuzzy().onField( field ).matching( matching ).createQuery() }
     }
 
     private static class WildcardComponent extends Leaf {
         def matching
 
-        def createQuery() { queryBuilder.keyword().wildcard().onField(field).matching(matching).createQuery() }
+        def createQuery( ) { queryBuilder.keyword().wildcard().onField( field ).matching( matching ).createQuery() }
     }
 
     private static class PhraseComponent extends Leaf {
         def sentence
 
-        def createQuery() { queryBuilder.phrase().onField(field).sentence(sentence).createQuery() }
+        def createQuery( ) { queryBuilder.phrase().onField( field ).sentence( sentence ).createQuery() }
     }
 
     private static final String LIST = 'list'
@@ -187,38 +186,38 @@ class HibernateSearchQueryBuilder {
     def root
     def currentNode
 
-    public HibernateSearchQueryBuilder(clazz, session) {
+    public HibernateSearchQueryBuilder( clazz, session ) {
         this.clazz = clazz
-        this.fullTextSession = Search.getFullTextSession(session)
-        this.queryBuilder = fullTextSession.getSearchFactory().buildQueryBuilder().forEntity(clazz).get()
-        this.root = new MustComponent(queryBuilder: queryBuilder)
+        this.fullTextSession = Search.getFullTextSession( session )
+        this.queryBuilder = fullTextSession.getSearchFactory().buildQueryBuilder().forEntity( clazz ).get()
+        this.root = new MustComponent( queryBuilder: queryBuilder )
     }
 
     private FullTextQuery createFullTextQuery( ) {
         fullTextSession.createFullTextQuery( root.createQuery(), clazz )
     }
 
-    public Object invokeMethod(String name, Object obj) {
+    public Object invokeMethod( String name, Object obj ) {
 
         def args = obj.class.isArray() ? obj : [obj]
 
-        if ( args.size() == 1 && Closure.isAssignableFrom(args[0].class) ) {
+        if ( args.size() == 1 && Closure.isAssignableFrom( args[0].class ) ) {
 
             def composite
 
-            currentNode = (currentNode?.parent) ?: root
+            currentNode = ( currentNode?.parent ) ?: root
 
             switch ( name ) {
                 case MUST:
-                    composite = new MustComponent(queryBuilder: queryBuilder)
+                    composite = new MustComponent( queryBuilder: queryBuilder )
                     break
 
                 case SHOULD:
-                    composite = new ShouldComponent(queryBuilder: queryBuilder)
+                    composite = new ShouldComponent( queryBuilder: queryBuilder )
                     break
 
                 case MUST_NOT:
-                    composite = new MustNotComponent(queryBuilder: queryBuilder)
+                    composite = new MustNotComponent( queryBuilder: queryBuilder )
                     break
             }
 
@@ -227,7 +226,7 @@ class HibernateSearchQueryBuilder {
                 currentNode = composite
             }
 
-            invokeClosureNode(args[0])
+            invokeClosureNode( args[0] )
 
         } else {
 
@@ -236,35 +235,35 @@ class HibernateSearchQueryBuilder {
             switch ( name ) {
 
                 case BELOW:
-                    leaf = new BelowComponent(queryBuilder: queryBuilder, field: args[0], below: args[1])
+                    leaf = new BelowComponent( queryBuilder: queryBuilder, field: args[0], below: args[1] )
                     break
 
                 case ABOVE:
-                    leaf = new AboveComponent(queryBuilder: queryBuilder, field: args[0], above: args[1])
+                    leaf = new AboveComponent( queryBuilder: queryBuilder, field: args[0], above: args[1] )
                     break
 
                 case BETWEEN:
-                    leaf = new BetweenComponent(queryBuilder: queryBuilder, field: args[0], from: args[1], to: args[2])
+                    leaf = new BetweenComponent( queryBuilder: queryBuilder, field: args[0], from: args[1], to: args[2] )
                     break
 
                 case ABOVE:
-                    leaf = new AboveComponent(queryBuilder: queryBuilder, field: args[0], above: args[1])
+                    leaf = new AboveComponent( queryBuilder: queryBuilder, field: args[0], above: args[1] )
                     break
 
                 case KEYWORD:
-                    leaf = new KeywordComponent(queryBuilder: queryBuilder, field: args[0], matching: args[1])
+                    leaf = new KeywordComponent( queryBuilder: queryBuilder, field: args[0], matching: args[1] )
                     break
 
                 case FUZZY:
-                    leaf = new FuzzyComponent(queryBuilder: queryBuilder, field: args[0], matching: args[1])
+                    leaf = new FuzzyComponent( queryBuilder: queryBuilder, field: args[0], matching: args[1] )
                     break
 
                 case WILDCARD:
-                    leaf = new WildcardComponent(queryBuilder: queryBuilder, field: args[0], matching: args[1])
+                    leaf = new WildcardComponent( queryBuilder: queryBuilder, field: args[0], matching: args[1] )
                     break
 
                 case PHRASE:
-                    leaf = new PhraseComponent(queryBuilder: queryBuilder, field: args[0], sentence: args[1])
+                    leaf = new PhraseComponent( queryBuilder: queryBuilder, field: args[0], sentence: args[1] )
                     break
 
                 case MAX_RESULTS:
@@ -291,17 +290,17 @@ class HibernateSearchQueryBuilder {
             FullTextQuery fullTextQuery = createFullTextQuery()
 
             if ( maxResults > 0 ) {
-                fullTextQuery.setMaxResults(maxResults)
+                fullTextQuery.setMaxResults( maxResults )
             }
 
-            fullTextQuery.setFirstResult(offset)
+            fullTextQuery.setFirstResult( offset )
 
             if ( sort ) {
 
-                def sortType = SORT_TYPES[ClassPropertyFetcher.forClass(clazz).getPropertyType(sort)]
+                def sortType = SORT_TYPES[ClassPropertyFetcher.forClass( clazz ).getPropertyType( sort )]
 
                 if ( sortType ) {
-                    fullTextQuery.sort = new Sort(new SortField(sort, sortType, reverse))
+                    fullTextQuery.sort = new Sort( new SortField( sort, sortType, reverse ) )
                 }
             }
 
@@ -314,7 +313,7 @@ class HibernateSearchQueryBuilder {
         }
     }
 
-    def invokeClosureNode(callable) {
+    def invokeClosureNode( callable ) {
         callable.delegate = this
         callable.resolveStrategy = Closure.DELEGATE_FIRST
         callable.call()
