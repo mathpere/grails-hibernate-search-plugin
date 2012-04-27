@@ -158,6 +158,7 @@ class HibernateSearchQueryBuilder {
     }
 
     private static final String LIST = 'list'
+    private static final String COUNT = 'count'
     private static final String SHOULD = 'should'
     private static final String MUST = 'must'
     private static final String MUST_NOT = 'mustNot'
@@ -191,6 +192,10 @@ class HibernateSearchQueryBuilder {
         this.fullTextSession = Search.getFullTextSession(session)
         this.queryBuilder = fullTextSession.getSearchFactory().buildQueryBuilder().forEntity(clazz).get()
         this.root = new MustComponent(queryBuilder: queryBuilder)
+    }
+
+    private FullTextQuery createFullTextQuery( ) {
+        fullTextSession.createFullTextQuery( root.createQuery(), clazz )
     }
 
     public Object invokeMethod(String name, Object obj) {
@@ -281,9 +286,9 @@ class HibernateSearchQueryBuilder {
             }
         }
 
-        FullTextQuery fullTextQuery = fullTextSession.createFullTextQuery(root.createQuery(), clazz)
+        if ( name == LIST ) {
 
-        if ( name == 'list' ) {
+            FullTextQuery fullTextQuery = createFullTextQuery()
 
             if ( maxResults > 0 ) {
                 fullTextQuery.setMaxResults(maxResults)
@@ -302,7 +307,9 @@ class HibernateSearchQueryBuilder {
 
             fullTextQuery.list()
 
-        } else if ( name == 'count' ) {
+        } else if ( name == COUNT ) {
+
+            FullTextQuery fullTextQuery = createFullTextQuery()
             fullTextQuery.resultSize
         }
     }
