@@ -36,6 +36,8 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
     def currentSearchMapping
     def currentSearchProperties
 
+    SearchMappingGlobalConfig searchMappingGlobalConfig
+
     @Override
     protected void postProcessConfiguration(Configuration config) throws HibernateException {
         super.postProcessConfiguration(config)
@@ -60,9 +62,11 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
 
             def searchMapping = new SearchMapping()
 
+            searchMappingGlobalConfig.processGlobalConfig(searchMapping)
+
             grailsApplication.domainClasses.each {
 
-                ClassPropertyFetcher cpf = ClassPropertyFetcher.forClass(it.clazz);
+                ClassPropertyFetcher cpf = ClassPropertyFetcher.forClass(it.clazz)
                 def searchClosure = cpf.getStaticPropertyValue("search", Closure)
 
                 if ( searchClosure ) {
@@ -138,6 +142,10 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
         } else {
             currentMapping = currentMapping.property(name, ElementType.FIELD).field().name(args.name ?: name)
 
+            if ( args.analyzer ) {
+                currentMapping = currentMapping.analyzer( args.analyzer )
+            }
+
             if ( args.index ) {
                 currentMapping = currentMapping.index(Index."${args.index.toUpperCase()}")
             }
@@ -160,10 +168,8 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
 
                 def params = args.bridge["params"]
 
-                if ( params ) {
-                    params.each {k, v ->
-                        currentMapping = currentMapping.param(k.toString(), v.toString())
-                    }
+                params?.each {k, v ->
+                    currentMapping = currentMapping.param(k.toString(), v.toString())
                 }
             }
         }

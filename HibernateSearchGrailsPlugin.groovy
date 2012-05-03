@@ -3,6 +3,7 @@ import org.codehaus.groovy.grails.plugins.hibernate.search.SearchMappingConfigur
 import org.codehaus.groovy.grails.plugins.hibernate.search.SearchPersistentMethod
 import org.hibernate.search.annotations.Indexed
 import org.springframework.core.annotation.AnnotationUtils
+import org.codehaus.groovy.grails.plugins.hibernate.search.SearchMappingGlobalConfig
 
 class HibernateSearchGrailsPlugin {
     def version = "0.4.3"
@@ -22,9 +23,14 @@ class HibernateSearchGrailsPlugin {
     def scm = [url: 'https://github.com/mathpere/grails-hibernate-search-plugin']
 
     def doWithSpring = {
+        searchMappingGlobalConfig(SearchMappingGlobalConfig) {
+            grailsApplication = ref("grailsApplication")
+        }
+
         sessionFactory(SearchMappingConfigurableLocalSessionFactoryBean) { bean ->
             // see org.codehaus.groovy.grails.plugins.orm.hibernate.HibernatePluginSupport:
             bean.parent = 'abstractSessionFactoryBeanConfig'
+            searchMappingGlobalConfig = ref("searchMappingGlobalConfig")
         }
     }
 

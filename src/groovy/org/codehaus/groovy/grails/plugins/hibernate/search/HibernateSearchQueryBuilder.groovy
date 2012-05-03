@@ -173,6 +173,7 @@ class HibernateSearchQueryBuilder {
     private static final String SORT = 'sort'
     private static final String DESC = 'desc'
     private static final String ASC = 'asc'
+    private static final String FILTER = 'filter'
 
     private final QueryBuilder queryBuilder
     private final FullTextSession fullTextSession
@@ -182,6 +183,7 @@ class HibernateSearchQueryBuilder {
     def reverse = false
     def maxResults = 0
     def offset = 0
+    def filterDefinitions = [:]
 
     def root
     def currentNode
@@ -194,14 +196,25 @@ class HibernateSearchQueryBuilder {
     }
 
     private FullTextQuery createFullTextQuery( ) {
-        fullTextSession.createFullTextQuery( root.createQuery(), clazz )
+        def query = fullTextSession.createFullTextQuery( root.createQuery(), clazz )
+
+        filterDefinitions?.each { filterName, filterParams ->
+
+            def filter = query.enableFullTextFilter( filterName )
+
+            filterParams?.each { k, v ->
+                filter.setParameter( k, v )
+            }
+        }
+
+        query
     }
 
     public Object invokeMethod( String name, Object obj ) {
 
         def args = obj.class.isArray() ? obj : [obj]
 
-        if ( args.size() == 1 && Closure.isAssignableFrom( args[0].class ) ) {
+        if ( args.size() == 1 && args[0] instanceof Closure ) {
 
             def composite
 
@@ -278,6 +291,17 @@ class HibernateSearchQueryBuilder {
                     sort = args[0]
                     reverse = args.size() == 2 && args[1] == DESC
                     break
+
+                case FILTER:
+
+                    if ( args[0] instanceof Map ) {
+                        def filter = args[0]
+                        filterDefinitions.put filter.name, filter.params
+                    } else {
+                        filterDefinitions.put args[0], null
+                    }
+
+                    break
             }
 
             if ( leaf ) {
@@ -290,10 +314,10 @@ class HibernateSearchQueryBuilder {
             FullTextQuery fullTextQuery = createFullTextQuery()
 
             if ( maxResults > 0 ) {
-                fullTextQuery.setMaxResults( maxResults )
+                fullTextQuery.maxResults = maxResults
             }
 
-            fullTextQuery.setFirstResult( offset )
+            fullTextQuery.firstResult = offset
 
             if ( sort ) {
 
