@@ -88,10 +88,8 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
 
                         def params = classBridge["params"]
 
-                        if ( params ) {
-                            params.each {k, v ->
-                                currentMapping = currentMapping.param( k.toString(), v.toString() )
-                            }
+                        params?.each {k, v ->
+                            currentMapping = currentMapping.param( k.toString(), v.toString() )
                         }
                     }
 
@@ -141,6 +139,10 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
 
         } else {
             currentMapping = currentMapping.property( name, ElementType.FIELD ).field().name( args.name ?: name )
+
+            if ( currentSearchProperties.analyzer ) {
+                currentMapping = currentMapping.analyzer( currentSearchProperties.analyzer )
+            }
 
             if ( args.analyzer ) {
                 currentMapping = currentMapping.analyzer( args.analyzer )
