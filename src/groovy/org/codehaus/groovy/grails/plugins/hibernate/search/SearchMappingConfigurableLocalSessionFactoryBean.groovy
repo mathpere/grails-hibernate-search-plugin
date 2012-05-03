@@ -39,35 +39,35 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
     SearchMappingGlobalConfig searchMappingGlobalConfig
 
     @Override
-    protected void postProcessConfiguration(Configuration config) throws HibernateException {
-        super.postProcessConfiguration(config)
+    protected void postProcessConfiguration( Configuration config ) throws HibernateException {
+        super.postProcessConfiguration( config )
 
         try {
 
             def properties = config.getProperties()
 
-            if ( !properties.containsKey(DIRECTORY_PROVIDER) ) {
-                properties.setProperty(DIRECTORY_PROVIDER, "filesystem")
+            if ( !properties.containsKey( DIRECTORY_PROVIDER ) ) {
+                properties.setProperty( DIRECTORY_PROVIDER, "filesystem" )
             }
 
-            if ( properties.containsKey(INDEX_BASE_JNDI_NAME) ) {
-                def jndiName = properties.getProperty(INDEX_BASE_JNDI_NAME)
-                properties.setProperty(INDEX_BASE, new JndiTemplate().lookup(jndiName))
+            if ( properties.containsKey( INDEX_BASE_JNDI_NAME ) ) {
+                def jndiName = properties.getProperty( INDEX_BASE_JNDI_NAME )
+                properties.setProperty( INDEX_BASE, new JndiTemplate().lookup( jndiName ) )
             }
 
-            if ( !properties.containsKey(INDEX_BASE) ) {
+            if ( !properties.containsKey( INDEX_BASE ) ) {
                 def sep = File.separator
-                properties.setProperty(INDEX_BASE, "${System.properties['user.home']}${sep}.grails${sep}${grailsApplication.metadata["app.grails.version"]}${sep}projects${sep}${grailsApplication.metadata["app.name"]}${sep}lucene-index${sep}${grails.util.GrailsUtil.getEnvironment()}")
+                properties.setProperty( INDEX_BASE, "${System.properties['user.home']}${sep}.grails${sep}${grailsApplication.metadata["app.grails.version"]}${sep}projects${sep}${grailsApplication.metadata["app.name"]}${sep}lucene-index${sep}${grails.util.GrailsUtil.getEnvironment()}" )
             }
 
             def searchMapping = new SearchMapping()
 
-            searchMappingGlobalConfig.processGlobalConfig(searchMapping)
+            searchMappingGlobalConfig.processGlobalConfig( searchMapping )
 
             grailsApplication.domainClasses.each {
 
-                ClassPropertyFetcher cpf = ClassPropertyFetcher.forClass(it.clazz)
-                def searchClosure = cpf.getStaticPropertyValue("search", Closure)
+                ClassPropertyFetcher cpf = ClassPropertyFetcher.forClass( it.clazz )
+                def searchClosure = cpf.getStaticPropertyValue( "search", Closure )
 
                 if ( searchClosure ) {
 
@@ -78,98 +78,98 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
                     searchClosure.resolveStrategy = Closure.DELEGATE_FIRST
                     searchClosure.call()
 
-                    currentMapping = searchMapping.entity(it.clazz)
+                    currentMapping = searchMapping.entity( it.clazz )
 
                     def classBridge = currentSearchProperties.classBridge
 
                     if ( classBridge ) {
 
-                        currentMapping = currentMapping.classBridge(classBridge['class'])
+                        currentMapping = currentMapping.classBridge( classBridge['class'] )
 
                         def params = classBridge["params"]
 
                         if ( params ) {
                             params.each {k, v ->
-                                currentMapping = currentMapping.param(k.toString(), v.toString())
+                                currentMapping = currentMapping.param( k.toString(), v.toString() )
                             }
                         }
                     }
 
-                    currentMapping = currentMapping.indexed().property("id", ElementType.FIELD).documentId()
+                    currentMapping = currentMapping.indexed().property( "id", ElementType.FIELD ).documentId()
 
                     currentSearchMapping.each {fieldName, argsList ->
-                        argsList.each {args -> mapField(fieldName, args)}
+                        argsList.each {args -> mapField( fieldName, args )}
                     }
                 }
             }
 
-            properties.put(Environment.MODEL_MAPPING, searchMapping)
+            properties.put( Environment.MODEL_MAPPING, searchMapping )
 
-        } catch (Exception e) {
-            logger.error("Error while indexing entities", e)
+        } catch ( Exception e ) {
+            logger.error( "Error while indexing entities", e )
         }
     }
 
-    def propertyMissing(String name, value) {
+    def propertyMissing( String name, value ) {
         currentSearchProperties[name] = value
     }
 
-    def invokeMethod(String name, obj) {
+    def invokeMethod( String name, obj ) {
         currentSearchMapping[name] = currentSearchMapping[name] ?: []
         currentSearchMapping[name] << obj
     }
 
-    def mapField(String name, obj) {
+    def mapField( String name, obj ) {
         obj = obj.class.isArray() ? obj : [obj]
 
         def args = obj[0] ?: [:]
 
         if ( args.indexEmbedded ) {
 
-            currentMapping = currentMapping.property(name, ElementType.FIELD).indexEmbedded()
+            currentMapping = currentMapping.property( name, ElementType.FIELD ).indexEmbedded()
 
-            if ( args.indexEmbedded instanceof Map) {
+            if ( args.indexEmbedded instanceof Map ) {
                 def depth = args.indexEmbedded["depth"]
 
                 if ( depth ) {
-                    currentMapping = currentMapping.depth(depth)
+                    currentMapping = currentMapping.depth( depth )
                 }
             }
         } else if ( args.containedIn ) {
 
-            currentMapping = currentMapping.property(name, ElementType.FIELD).containedIn()
+            currentMapping = currentMapping.property( name, ElementType.FIELD ).containedIn()
 
         } else {
-            currentMapping = currentMapping.property(name, ElementType.FIELD).field().name(args.name ?: name)
+            currentMapping = currentMapping.property( name, ElementType.FIELD ).field().name( args.name ?: name )
 
             if ( args.analyzer ) {
                 currentMapping = currentMapping.analyzer( args.analyzer )
             }
 
             if ( args.index ) {
-                currentMapping = currentMapping.index(Index."${args.index.toUpperCase()}")
+                currentMapping = currentMapping.index( Index."${args.index.toUpperCase()}" )
             }
 
             if ( args.store ) {
-                currentMapping = currentMapping.store(Store."${args.store.toUpperCase()}")
+                currentMapping = currentMapping.store( Store."${args.store.toUpperCase()}" )
             }
 
             if ( args.numeric ) {
-                currentMapping = currentMapping.numericField().precisionStep(args.numeric)
+                currentMapping = currentMapping.numericField().precisionStep( args.numeric )
             }
 
             if ( args.date ) {
-                currentMapping = currentMapping.dateBridge(Resolution."${args.date.toUpperCase()}")
+                currentMapping = currentMapping.dateBridge( Resolution."${args.date.toUpperCase()}" )
             }
 
             if ( args.bridge ) {
 
-                currentMapping = currentMapping.bridge(args.bridge["class"])
+                currentMapping = currentMapping.bridge( args.bridge["class"] )
 
                 def params = args.bridge["params"]
 
                 params?.each {k, v ->
-                    currentMapping = currentMapping.param(k.toString(), v.toString())
+                    currentMapping = currentMapping.param( k.toString(), v.toString() )
                 }
             }
         }
