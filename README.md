@@ -154,6 +154,74 @@ class MyDomainClass {
 }
 ```
 
+### Search
+
+The plugin provides you dynamic method to search for indexed entities. 
+
+#### Retrieving the results
+
+All indexed domain classes provides .search() method which lets you to list the results.
+The plugin provides a search DSL for simplifying the way you can search. Here is what it looks like with the search DSL:
+
+```groovy
+class SomeController {
+
+   def myAction = { MyCommand command ->
+
+      def page = [max: Math.min(params.max ? params.int('max') : 10, 50), offset: params.offset ? params.int('offset') : 0]
+
+      def myDomainClasses = MyDomainClass.search().list {
+
+         if ( command.dateTo ) {
+            below "publishedDate", command.dateTo
+         }
+
+         if ( command.dateFrom ) {
+            above "publishedDate", command.dateFrom
+         }
+
+         mustNot {
+            keyword "status", Status.DISABLED
+         }
+
+         if ( command.keyword ) {
+            should {
+               command.keyword.tokenize().each { keyword ->
+
+                  def wild = keyword.toLowerCase() + '*'
+
+                  wildcard "author", wild
+                  wildcard "body", wild
+                  wildcard "summary", wild
+                  wildcard "title", wild
+                  wildcard "categories.name", wild
+               }
+            }
+         }
+
+         sort "publishedDate", "asc"
+
+         maxResults page.max
+
+         offset page.offset
+      }
+
+      [myDomainClasses: myDomainClasses]
+   }
+}
+```
+
+#### Counting the results
+
+You can also retrieve the number of results by using 'count' method:
+
+```groovy
+def myDomainClasses = MyDomainClass.search().count {
+ ...
+}
+```
+
+
 ### Analysis
 
 #### Define named analyzers
@@ -233,76 +301,56 @@ class MyDomainClass {
 }
 ```
 
+### Filters
 
-### Search
+#### Define named filters
 
-The plugin provides you dynamic method to search for indexed entities. 
-
-#### Retrieving the results
-
-All indexed domain classes provides .search() method which lets you to list the results.
-The plugin provides a search DSL for simplifying the way you can search. Here is what it looks like with the search DSL:
+Named filters are global and can be defined within Config.groovy as following:
 
 ```groovy
-class SomeController {
 
-   def myAction = { MyCommand command ->
+...
 
-      def page = [max: Math.min(params.max ? params.int('max') : 10, 50), offset: params.offset ? params.int('offset') : 0]
+grails.plugins.hibernatesearch = {
 
-      def myDomainClasses = MyDomainClass.search().list {
+    // cf official doc http://docs.jboss.org/hibernate/stable/search/reference/en-US/html_single/#query-filter
+    // Example 5.20. Defining and implementing a Filter
+    fullTextFilter name: "bestDriver", impl: BestDriversFilter
 
-         if ( command.dateTo ) {
-            below "publishedDate", command.dateTo
-         }
-
-         if ( command.dateFrom ) {
-            above "publishedDate", command.dateFrom
-         }
-
-         mustNot {
-            keyword "status", Status.DISABLED
-         }
-
-         if ( command.keyword ) {
-            should {
-               command.keyword.tokenize().each { keyword ->
-
-                  def wild = keyword.toLowerCase() + '*'
-
-                  wildcard "author", wild
-                  wildcard "body", wild
-                  wildcard "summary", wild
-                  wildcard "title", wild
-                  wildcard "categories.name", wild
-               }
-            }
-         }
-
-         sort "publishedDate", "asc"
-
-         maxResults page.max
-
-         offset page.offset
-      }
-
-      [myDomainClasses: myDomainClasses]
-   }
+    // cf official doc http://docs.jboss.org/hibernate/stable/search/reference/en-US/html_single/#query-filter
+    // Example 5.21. Creating a filter using the factory pattern    
+    fullTextFilter name: "security", impl: SecurityFilterFactory, cache: "instance_only"
+    
 }
-```
 
-#### Counting the results
-
-You can also retrieve the number of results by using 'count' method:
-
-```groovy
-def myDomainClasses = MyDomainClass.search().count {
- ...
-}
 ```
 
 
+#### Filter query results
 
+Filter query results looks like this:
+
+
+MyDomainClass.search().list {
+
+
+```groovy
+
+// without params:
+MyDomainClass.search().list {
+  ...
+  filter "bestDriver"
+  ...
+}
+
+// with params:
+MyDomainClass.search().list {
+  ...
+   filter name: "security", params: [ level: 4 ]
+  ...
+}
+
+```
 
 ## Bug tracker
 
