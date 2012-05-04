@@ -301,6 +301,15 @@ class MyDomainClass {
 }
 ```
 
+#### Get scoped analyzer for given entity
+
+The plugin lets you ro retrieve the scoped analyzer for a given analyzer with the search() method:
+
+```groovy
+def parser = new org.apache.lucene.queryParser.QueryParser (
+    "title", Song.search().getAnalyzer() )
+```
+
 ### Filters
 
 #### Define named filters
