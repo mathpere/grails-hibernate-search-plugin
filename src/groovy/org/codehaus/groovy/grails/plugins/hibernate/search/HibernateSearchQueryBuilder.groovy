@@ -158,6 +158,8 @@ class HibernateSearchQueryBuilder {
 
     private static final String LIST = 'list'
     private static final String COUNT = 'count'
+    private static final String GET_ANALYZER = 'getAnalyzer'
+
     private static final String SHOULD = 'should'
     private static final String MUST = 'must'
     private static final String MUST_NOT = 'mustNot'
@@ -191,7 +193,7 @@ class HibernateSearchQueryBuilder {
     public HibernateSearchQueryBuilder( clazz, session ) {
         this.clazz = clazz
         this.fullTextSession = Search.getFullTextSession( session )
-        this.queryBuilder = fullTextSession.getSearchFactory().buildQueryBuilder().forEntity( clazz ).get()
+        this.queryBuilder = fullTextSession.searchFactory.buildQueryBuilder().forEntity( clazz ).get()
         this.root = new MustComponent( queryBuilder: queryBuilder )
     }
 
@@ -334,6 +336,11 @@ class HibernateSearchQueryBuilder {
 
             FullTextQuery fullTextQuery = createFullTextQuery()
             fullTextQuery.resultSize
+
+        } else if ( name == GET_ANALYZER ) {
+
+            fullTextSession.getSearchFactory().getAnalyzer( clazz )
+
         }
     }
 
