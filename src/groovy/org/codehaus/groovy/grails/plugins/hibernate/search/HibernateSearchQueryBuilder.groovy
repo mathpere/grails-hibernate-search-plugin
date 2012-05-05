@@ -21,6 +21,7 @@ import org.hibernate.search.FullTextQuery
 import org.hibernate.search.FullTextSession
 import org.hibernate.search.Search
 import org.hibernate.search.query.dsl.QueryBuilder
+import org.apache.lucene.search.Query
 
 class HibernateSearchQueryBuilder {
 
@@ -36,17 +37,17 @@ class HibernateSearchQueryBuilder {
             ( Date ): SortField.STRING]
 
     private static interface Component {
-        def createQuery( )
+        Query createQuery( )
     }
 
     private static abstract class Composite implements Component {
 
-        def queryBuilder
+        QueryBuilder queryBuilder
         def parent
         def children = []
 
         def leftShift( component ) {
-            assert component instanceof Component: "component should be an instance of Component"
+            assert component instanceof Component: "'component' should be an instance of Component"
             component.parent = this
             children << component
         }
@@ -61,7 +62,7 @@ class HibernateSearchQueryBuilder {
     }
 
     private static class MustNotComponent extends Composite {
-        def createQuery( ) {
+        Query createQuery( ) {
             if ( children ) {
 
                 def query = queryBuilder.bool()
@@ -78,7 +79,7 @@ class HibernateSearchQueryBuilder {
         }
     }
     private static class MustComponent extends Composite {
-        def createQuery( ) {
+        Query createQuery( ) {
             if ( children ) {
 
                 def query = queryBuilder.bool()
@@ -96,7 +97,7 @@ class HibernateSearchQueryBuilder {
     }
 
     private static class ShouldComponent extends Composite {
-        def createQuery( ) {
+        Query createQuery( ) {
             if ( children ) {
 
                 def query = queryBuilder.bool()
@@ -116,44 +117,44 @@ class HibernateSearchQueryBuilder {
     private static class BelowComponent extends Leaf {
         def below
 
-        def createQuery( ) { queryBuilder.range().onField( field ).below( below ).createQuery() }
+        Query createQuery( ) { queryBuilder.range().onField( field ).below( below ).createQuery() }
     }
 
     private static class AboveComponent extends Leaf {
         def above
 
-        def createQuery( ) { queryBuilder.range().onField( field ).above( above ).createQuery() }
+        Query createQuery( ) { queryBuilder.range().onField( field ).above( above ).createQuery() }
     }
 
     private static class KeywordComponent extends Leaf {
         def matching
 
-        def createQuery( ) { queryBuilder.keyword().onField( field ).matching( matching ).createQuery() }
+        Query createQuery( ) { queryBuilder.keyword().onField( field ).matching( matching ).createQuery() }
     }
 
     private static class BetweenComponent extends Leaf {
         def from
         def to
 
-        def createQuery( ) { queryBuilder.range().onField( field ).from( from ).to( to ).createQuery() }
+        Query createQuery( ) { queryBuilder.range().onField( field ).from( from ).to( to ).createQuery() }
     }
 
     private static class FuzzyComponent extends Leaf {
         def matching
 
-        def createQuery( ) { queryBuilder.keyword().fuzzy().onField( field ).matching( matching ).createQuery() }
+        Query createQuery( ) { queryBuilder.keyword().fuzzy().onField( field ).matching( matching ).createQuery() }
     }
 
     private static class WildcardComponent extends Leaf {
         def matching
 
-        def createQuery( ) { queryBuilder.keyword().wildcard().onField( field ).matching( matching ).createQuery() }
+        Query createQuery( ) { queryBuilder.keyword().wildcard().onField( field ).matching( matching ).createQuery() }
     }
 
     private static class PhraseComponent extends Leaf {
         def sentence
 
-        def createQuery( ) { queryBuilder.phrase().onField( field ).sentence( sentence ).createQuery() }
+        Query createQuery( ) { queryBuilder.phrase().onField( field ).sentence( sentence ).createQuery() }
     }
 
     private static final String LIST = 'list'
@@ -174,7 +175,6 @@ class HibernateSearchQueryBuilder {
     private static final String OFFSET = 'offset'
     private static final String SORT = 'sort'
     private static final String DESC = 'desc'
-    private static final String ASC = 'asc'
     private static final String FILTER = 'filter'
 
     private final QueryBuilder queryBuilder
@@ -311,36 +311,43 @@ class HibernateSearchQueryBuilder {
             }
         }
 
-        if ( name == LIST ) {
+        switch ( name ) {
 
-            FullTextQuery fullTextQuery = createFullTextQuery()
+            case LIST:
 
-            if ( maxResults > 0 ) {
-                fullTextQuery.maxResults = maxResults
-            }
+                FullTextQuery fullTextQuery = createFullTextQuery()
 
-            fullTextQuery.firstResult = offset
-
-            if ( sort ) {
-
-                def sortType = SORT_TYPES[ClassPropertyFetcher.forClass( clazz ).getPropertyType( sort )]
-
-                if ( sortType ) {
-                    fullTextQuery.sort = new Sort( new SortField( sort, sortType, reverse ) )
+                if ( maxResults > 0 ) {
+                    fullTextQuery.maxResults = maxResults
                 }
-            }
 
-            fullTextQuery.list()
+                fullTextQuery.firstResult = offset
 
-        } else if ( name == COUNT ) {
+                if ( sort ) {
 
-            FullTextQuery fullTextQuery = createFullTextQuery()
-            fullTextQuery.resultSize
+                    def sortType = SORT_TYPES[ClassPropertyFetcher.forClass( clazz ).getPropertyType( sort )]
 
-        } else if ( name == GET_ANALYZER ) {
+                    if ( sortType ) {
+                        fullTextQuery.sort = new Sort( new SortField( sort, sortType, reverse ) )
+                    }
+                }
 
-            fullTextSession.getSearchFactory().getAnalyzer( clazz )
+                fullTextQuery.list()
 
+                break
+
+            case COUNT:
+
+                FullTextQuery fullTextQuery = createFullTextQuery()
+                fullTextQuery.resultSize
+
+                break
+
+            case GET_ANALYZER:
+
+                fullTextSession.getSearchFactory().getAnalyzer( clazz )
+
+                break
         }
     }
 
