@@ -53,7 +53,9 @@ You can also define the path to your indexes with JNDI configuration as followin
 }
 ```
 
-### Mark your domain classes as indexable
+###  Mapping entities to the index structure
+
+#### Mark your domain classes as indexable
 
 Add a static search closure as following:
 
@@ -152,7 +154,6 @@ class MyDomainClass {
 }
 ```
 
-
 ### Search
 
 The plugin provides you dynamic method to search for indexed entities. 
@@ -218,6 +219,146 @@ You can also retrieve the number of results by using 'count' method:
 def myDomainClasses = MyDomainClass.search().count {
  ...
 }
+```
+
+
+### Analysis
+
+#### Define named analyzers
+
+Named analyzers are global and can be defined within Config.groovy as following:
+
+```groovy
+
+import org.apache.solr.analysis.StandardTokenizerFactory
+import org.apache.solr.analysis.LowerCaseFilterFactory
+import org.apache.solr.analysis.NGramFilterFactory
+
+...
+
+grails.plugins.hibernatesearch = {
+
+    analyzer( name: 'ngram', tokenizer: StandardTokenizerFactory ) {
+        filter LowerCaseFilterFactory
+        filter factory: NGramFilterFactory, params: [minGramSize: 3, maxGramSize: 3]
+    }
+
+}
+
+```
+
+This configuration is strictly equivalent to this annotation configuration:
+
+```java
+@AnalyzerDef(name = "ngram", tokenizer = @TokenizerDef(factory = StandardTokenizerFactory.class),
+  filters = {
+    @TokenFilterDef(factory = LowerCaseFilterFactory.class),
+    @TokenFilterDef(factory = NGramFilterFactory.class, 
+      params = {
+        @Parameter(name = "minGramSize",value = "3"),
+        @Parameter(name = "maxGramSize",value = "3") 
+     })
+})
+public class Address {
+...
+}
+```
+
+#### Use named analyzers
+
+Set the analyzer at the entity level: all fields will be indexed with the analyzer
+
+```groovy
+class MyDomainClass {
+
+    String author
+    String body
+    ...
+
+    static search = {
+        analyzer = 'ngram'
+        author index: 'tokenized'
+        body index: 'tokenized'
+    }
+
+}
+```
+
+Or set the analyzer at the field level: 
+
+```groovy
+class MyDomainClass {
+
+    String author
+    String body
+    ...
+
+    static search = {
+        author index: 'tokenized'
+        body index: 'tokenized', analyzer: 'ngram'
+    }
+
+}
+```
+
+#### Get scoped analyzer for given entity
+
+The plugin lets you ro retrieve the scoped analyzer for a given analyzer with the search() method:
+
+```groovy
+def parser = new org.apache.lucene.queryParser.QueryParser (
+    "title", Song.search().getAnalyzer() )
+```
+
+### Filters
+
+#### Define named filters
+
+Named filters are global and can be defined within Config.groovy as following:
+
+```groovy
+
+...
+
+grails.plugins.hibernatesearch = {
+
+    // cf official doc http://docs.jboss.org/hibernate/stable/search/reference/en-US/html_single/#query-filter
+    // Example 5.20. Defining and implementing a Filter
+    fullTextFilter name: "bestDriver", impl: BestDriversFilter
+
+    // cf official doc http://docs.jboss.org/hibernate/stable/search/reference/en-US/html_single/#query-filter
+    // Example 5.21. Creating a filter using the factory pattern    
+    fullTextFilter name: "security", impl: SecurityFilterFactory, cache: "instance_only"
+    
+}
+
+```
+
+
+#### Filter query results
+
+Filter query results looks like this:
+
+
+MyDomainClass.search().list {
+
+
+```groovy
+
+// without params:
+MyDomainClass.search().list {
+  ...
+  filter "bestDriver"
+  ...
+}
+
+// with params:
+MyDomainClass.search().list {
+  ...
+   filter name: "security", params: [ level: 4 ]
+  ...
+}
+
 ```
 
 ## Bug tracker
