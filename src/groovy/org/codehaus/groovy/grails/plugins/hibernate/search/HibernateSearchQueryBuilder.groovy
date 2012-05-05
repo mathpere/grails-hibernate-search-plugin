@@ -14,16 +14,15 @@
  */
 package org.codehaus.groovy.grails.plugins.hibernate.search
 
+import org.apache.lucene.search.Query
 import org.apache.lucene.search.Sort
 import org.apache.lucene.search.SortField
 import org.grails.datastore.mapping.reflect.ClassPropertyFetcher
 import org.hibernate.search.FullTextQuery
 import org.hibernate.search.FullTextSession
 import org.hibernate.search.Search
-import org.hibernate.search.query.dsl.QueryBuilder
-import org.apache.lucene.search.Query
-import org.hibernate.search.query.dsl.QueryCustomization
 import org.hibernate.search.query.dsl.FieldCustomization
+import org.hibernate.search.query.dsl.QueryBuilder
 
 class HibernateSearchQueryBuilder {
 
