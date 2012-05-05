@@ -213,6 +213,7 @@ class HibernateSearchQueryBuilder {
     private final clazz
 
     def sort
+    def sortType
     def reverse = false
     def maxResults = 0
     def offset = 0
@@ -338,7 +339,26 @@ class HibernateSearchQueryBuilder {
 
                 case SORT:
                     sort = args[0]
-                    reverse = args.size() == 2 && args[1] == DESC
+                    reverse = args.size() >= 2 && args[1] == DESC
+
+                    if ( args.size() == 3 ) {
+
+                        switch ( args[2].class ) {
+                            case Class:
+                                sortType = SORT_TYPES[args[2]]
+                                break
+
+                            case String:
+                                sortType = SortField."${args[2].toUpperCase()}"
+                                break
+
+                            case int:
+                            case Integer:
+                                sortType = args[2]
+                                break
+                        }
+                    }
+
                     break
 
                 case FILTER:
@@ -372,11 +392,10 @@ class HibernateSearchQueryBuilder {
 
                 if ( sort ) {
 
-                    def sortType = SORT_TYPES[ClassPropertyFetcher.forClass( clazz ).getPropertyType( sort )]
+                    sortType = sortType ?: SORT_TYPES[ClassPropertyFetcher.forClass( clazz ).getPropertyType( sort )] ?: SortField.STRING
 
-                    if ( sortType ) {
-                        fullTextQuery.sort = new Sort( new SortField( sort, sortType, reverse ) )
-                    }
+                    fullTextQuery.sort = new Sort( new SortField( sort, sortType, reverse ) )
+
                 }
 
                 fullTextQuery.list()
