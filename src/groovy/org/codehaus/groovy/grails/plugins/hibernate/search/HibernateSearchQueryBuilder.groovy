@@ -22,6 +22,8 @@ import org.hibernate.search.FullTextSession
 import org.hibernate.search.Search
 import org.hibernate.search.query.dsl.QueryBuilder
 import org.apache.lucene.search.Query
+import org.hibernate.search.query.dsl.QueryCustomization
+import org.hibernate.search.query.dsl.FieldCustomization
 
 class HibernateSearchQueryBuilder {
 
@@ -56,8 +58,24 @@ class HibernateSearchQueryBuilder {
     private static abstract class Leaf extends Composite {
         def field
 
+        def ignoreAnalyzer = false
+        def ignoreFieldBridge = false
+
         def leftShift( component ) {
             throw new UnsupportedOperationException( "${this.class.name} is a leaf" )
+        }
+
+        abstract FieldCustomization createFieldCustomization( )
+
+        FieldCustomization getFieldCustomization( ) {
+
+            def field = createFieldCustomization()
+
+            if ( ignoreAnalyzer ) { field = field.ignoreAnalyzer() }
+
+            if ( ignoreFieldBridge ) { field = field.ignoreFieldBridge() }
+
+            field
         }
     }
 
@@ -117,44 +135,58 @@ class HibernateSearchQueryBuilder {
     private static class BelowComponent extends Leaf {
         def below
 
-        Query createQuery( ) { queryBuilder.range().onField( field ).below( below ).createQuery() }
+        Query createQuery( ) { fieldCustomization.below( below ).createQuery() }
+
+        FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
     }
 
     private static class AboveComponent extends Leaf {
         def above
 
-        Query createQuery( ) { queryBuilder.range().onField( field ).above( above ).createQuery() }
+        Query createQuery( ) { fieldCustomization.above( above ).createQuery() }
+
+        FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
     }
 
     private static class KeywordComponent extends Leaf {
         def matching
 
-        Query createQuery( ) { queryBuilder.keyword().onField( field ).matching( matching ).createQuery() }
+        Query createQuery( ) { fieldCustomization.matching( matching ).createQuery() }
+
+        FieldCustomization createFieldCustomization( ) { queryBuilder.keyword().onField( field ) }
     }
 
     private static class BetweenComponent extends Leaf {
         def from
         def to
 
-        Query createQuery( ) { queryBuilder.range().onField( field ).from( from ).to( to ).createQuery() }
+        Query createQuery( ) { fieldCustomization.from( from ).to( to ).createQuery() }
+
+        FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
     }
 
     private static class FuzzyComponent extends Leaf {
         def matching
 
-        Query createQuery( ) { queryBuilder.keyword().fuzzy().onField( field ).matching( matching ).createQuery() }
+        Query createQuery( ) { fieldCustomization.matching( matching ).createQuery() }
+
+        FieldCustomization createFieldCustomization( ) { queryBuilder.keyword().fuzzy().onField( field ) }
     }
 
     private static class WildcardComponent extends Leaf {
         def matching
 
-        Query createQuery( ) { queryBuilder.keyword().wildcard().onField( field ).matching( matching ).createQuery() }
+        Query createQuery( ) { fieldCustomization.matching( matching ).createQuery() }
+
+        FieldCustomization createFieldCustomization( ) { queryBuilder.keyword().wildcard().onField( field ) }
     }
 
     private static class PhraseComponent extends Leaf {
         def sentence
 
-        Query createQuery( ) { queryBuilder.phrase().onField( field ).sentence( sentence ).createQuery() }
+        Query createQuery( ) { fieldCustomization.sentence( sentence ).createQuery() }
+
+        FieldCustomization createFieldCustomization( ) { queryBuilder.phrase().onField( field ) }
     }
 
     private static final String LIST = 'list'
@@ -250,35 +282,51 @@ class HibernateSearchQueryBuilder {
             switch ( name ) {
 
                 case BELOW:
-                    leaf = new BelowComponent( queryBuilder: queryBuilder, field: args[0], below: args[1] )
+                    def params = [queryBuilder: queryBuilder, field: args[0], below: args[1]]
+                    if ( args.size() == 3 ) { params.putAll args[2] }
+                    leaf = new BelowComponent( params )
                     break
 
                 case ABOVE:
-                    leaf = new AboveComponent( queryBuilder: queryBuilder, field: args[0], above: args[1] )
+                    def params = [queryBuilder: queryBuilder, field: args[0], above: args[1]]
+                    if ( args.size() == 3 ) { params.putAll args[2] }
+                    leaf = new AboveComponent( params )
                     break
 
                 case BETWEEN:
-                    leaf = new BetweenComponent( queryBuilder: queryBuilder, field: args[0], from: args[1], to: args[2] )
+                    def params = [queryBuilder: queryBuilder, field: args[0], from: args[1], to: args[2]]
+                    if ( args.size() == 4 ) { params.putAll args[3] }
+                    leaf = new BetweenComponent( params )
                     break
 
                 case ABOVE:
-                    leaf = new AboveComponent( queryBuilder: queryBuilder, field: args[0], above: args[1] )
+                    def params = [queryBuilder: queryBuilder, field: args[0], above: args[1]]
+                    if ( args.size() == 3 ) { params.putAll args[2] }
+                    leaf = new AboveComponent( params )
                     break
 
                 case KEYWORD:
-                    leaf = new KeywordComponent( queryBuilder: queryBuilder, field: args[0], matching: args[1] )
+                    def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
+                    if ( args.size() == 3 ) { params.putAll args[2] }
+                    leaf = new KeywordComponent( params )
                     break
 
                 case FUZZY:
-                    leaf = new FuzzyComponent( queryBuilder: queryBuilder, field: args[0], matching: args[1] )
+                    def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
+                    if ( args.size() == 3 ) { params.putAll args[2] }
+                    leaf = new FuzzyComponent( params )
                     break
 
                 case WILDCARD:
-                    leaf = new WildcardComponent( queryBuilder: queryBuilder, field: args[0], matching: args[1] )
+                    def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
+                    if ( args.size() == 3 ) { params.putAll args[2] }
+                    leaf = new WildcardComponent( params )
                     break
 
                 case PHRASE:
-                    leaf = new PhraseComponent( queryBuilder: queryBuilder, field: args[0], sentence: args[1] )
+                    def params = [queryBuilder: queryBuilder, field: args[0], sentence: args[1]]
+                    if ( args.size() == 3 ) { params.putAll args[2] }
+                    leaf = new PhraseComponent( params )
                     break
 
                 case MAX_RESULTS:
