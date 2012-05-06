@@ -65,22 +65,23 @@ class HibernateSearchQueryBuilder {
         def ignoreAnalyzer = false
         def ignoreFieldBridge = false
 
-        def leftShift( component ) {
+        final def leftShift( component ) {
             throw new UnsupportedOperationException( "${this.class.name} is a leaf" )
         }
 
-        abstract FieldCustomization createFieldCustomization( )
+        final Query createQuery( ) {
+            def fieldCustomization = createFieldCustomization()
 
-        FieldCustomization getFieldCustomization( ) {
+            if ( ignoreAnalyzer ) { fieldCustomization = fieldCustomization.ignoreAnalyzer() }
 
-            def field = createFieldCustomization()
+            if ( ignoreFieldBridge ) { fieldCustomization = fieldCustomization.ignoreFieldBridge() }
 
-            if ( ignoreAnalyzer ) { field = field.ignoreAnalyzer() }
-
-            if ( ignoreFieldBridge ) { field = field.ignoreFieldBridge() }
-
-            field
+            createQuery( fieldCustomization )
         }
+
+        abstract Query createQuery( FieldCustomization fieldCustomization )
+
+        abstract FieldCustomization createFieldCustomization( )
     }
 
     private static class MustNotComponent extends Composite {
@@ -139,7 +140,7 @@ class HibernateSearchQueryBuilder {
     private static class BelowComponent extends Leaf {
         def below
 
-        Query createQuery( ) { fieldCustomization.below( below ).createQuery() }
+        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.below( below ).createQuery() }
 
         FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
     }
@@ -147,7 +148,7 @@ class HibernateSearchQueryBuilder {
     private static class AboveComponent extends Leaf {
         def above
 
-        Query createQuery( ) { fieldCustomization.above( above ).createQuery() }
+        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.above( above ).createQuery() }
 
         FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
     }
@@ -155,7 +156,7 @@ class HibernateSearchQueryBuilder {
     private static class KeywordComponent extends Leaf {
         def matching
 
-        Query createQuery( ) { fieldCustomization.matching( matching ).createQuery() }
+        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
 
         FieldCustomization createFieldCustomization( ) { queryBuilder.keyword().onField( field ) }
     }
@@ -164,7 +165,7 @@ class HibernateSearchQueryBuilder {
         def from
         def to
 
-        Query createQuery( ) { fieldCustomization.from( from ).to( to ).createQuery() }
+        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.from( from ).to( to ).createQuery() }
 
         FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
     }
@@ -172,7 +173,7 @@ class HibernateSearchQueryBuilder {
     private static class FuzzyComponent extends Leaf {
         def matching
 
-        Query createQuery( ) { fieldCustomization.matching( matching ).createQuery() }
+        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
 
         FieldCustomization createFieldCustomization( ) { queryBuilder.keyword().fuzzy().onField( field ) }
     }
@@ -180,7 +181,7 @@ class HibernateSearchQueryBuilder {
     private static class WildcardComponent extends Leaf {
         def matching
 
-        Query createQuery( ) { fieldCustomization.matching( matching ).createQuery() }
+        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
 
         FieldCustomization createFieldCustomization( ) { queryBuilder.keyword().wildcard().onField( field ) }
     }
@@ -188,31 +189,13 @@ class HibernateSearchQueryBuilder {
     private static class PhraseComponent extends Leaf {
         def sentence
 
-        Query createQuery( ) { fieldCustomization.sentence( sentence ).createQuery() }
+        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.sentence( sentence ).createQuery() }
 
         FieldCustomization createFieldCustomization( ) { queryBuilder.phrase().onField( field ) }
     }
 
-    private static final String LIST = 'list'
-    private static final String COUNT = 'count'
-    private static final String GET_ANALYZER = 'getAnalyzer'
-    private static final String START_INDEXER_AND_WAIT = 'startIndexerAndWait'
-
-    private static final String SHOULD = 'should'
-    private static final String MUST = 'must'
-    private static final String MUST_NOT = 'mustNot'
-    private static final String BELOW = 'below'
-    private static final String ABOVE = 'above'
-    private static final String BETWEEN = 'between'
-    private static final String KEYWORD = 'keyword'
-    private static final String FUZZY = 'fuzzy'
-    private static final String WILDCARD = 'wildcard'
-    private static final String PHRASE = 'phrase'
-    private static final String MAX_RESULTS = 'maxResults'
-    private static final String OFFSET = 'offset'
-    private static final String SORT = 'sort'
+    private static final String ASC = 'asc'
     private static final String DESC = 'desc'
-    private static final String FILTER = 'filter'
 
     private static final List MASS_INDEXER_METHODS = MassIndexer.methods.findAll { it.returnType == MassIndexer }*.name
 
@@ -222,15 +205,15 @@ class HibernateSearchQueryBuilder {
     private QueryBuilder queryBuilder
     private MassIndexer massIndexer
 
-    def sort
-    def sortType
-    def reverse = false
-    def maxResults = 0
-    def offset = 0
-    def filterDefinitions = [:]
+    private def sort
+    private def sortType
+    private def reverse = false
+    private def maxResults = 0
+    private def offset = 0
+    private def filterDefinitions = [:]
 
-    def root
-    def currentNode
+    private def root
+    private def currentNode
 
     public HibernateSearchQueryBuilder( clazz, session ) {
         this.clazz = clazz
@@ -258,188 +241,179 @@ class HibernateSearchQueryBuilder {
         currentNode = root
     }
 
-    private initMassIndexer( ) {
+    /**
+     *
+     * @param searchDsl
+     * @return the results for this search
+     */
+    def list( searchDsl = null ) {
+
+        initQueryBuilder()
+
+        invokeClosureNode searchDsl
+
+        FullTextQuery fullTextQuery = createFullTextQuery()
+
+        if ( maxResults > 0 ) {
+            fullTextQuery.maxResults = maxResults
+        }
+
+        fullTextQuery.firstResult = offset
+
+        if ( sort ) {
+            fullTextQuery.sort = new Sort( new SortField( sort, sortType, reverse ) )
+        }
+
+        fullTextQuery.list()
+    }
+
+    /**
+     *
+     * @param searchDsl
+     * @return the number of hits for this search.
+     */
+    def count( Closure searchDsl = null ) {
+
+        initQueryBuilder()
+
+        invokeClosureNode searchDsl
+
+        createFullTextQuery().resultSize
+    }
+
+    /**
+     * create an initial Lucene index for the data already present in your database
+     *
+     * @param massIndexerDsl
+     */
+    def startIndexerAndWait( Closure massIndexerDsl = null ) {
+
         massIndexer = fullTextSession.createIndexer( clazz )
+
+        invokeClosureNode massIndexerDsl
+
+        massIndexer.startAndWait()
     }
 
-    public Object invokeMethod( String name, Object obj ) {
+    private addComposite( Composite composite, Closure arg ) {
 
-        def args = obj.class.isArray() ? obj : [obj]
+        currentNode << composite
+        currentNode = composite
 
-        def leaf
-        def composite
+        invokeClosureNode arg
 
-        switch ( name ) {
+        currentNode = currentNode?.parent ?: root
+    }
 
-            case MUST:
-                composite = new MustComponent( queryBuilder: queryBuilder )
-                break
+    private addLeaf( Leaf leaf ) {
+        currentNode << leaf
+    }
 
-            case SHOULD:
-                composite = new ShouldComponent( queryBuilder: queryBuilder )
-                break
+    def must( Closure arg ) {
+        addComposite new MustComponent( queryBuilder: queryBuilder ), arg
+    }
 
-            case MUST_NOT:
-                composite = new MustNotComponent( queryBuilder: queryBuilder )
-                break
+    def should( Closure arg ) {
+        addComposite new ShouldComponent( queryBuilder: queryBuilder ), arg
+    }
 
-            case LIST:
+    def mustNot( Closure arg ) {
+        addComposite new MustNotComponent( queryBuilder: queryBuilder ), arg
+    }
 
-                initQueryBuilder()
+    def maxResults( int maxResults ) {
+        this.maxResults = maxResults
+    }
 
-                invokeClosureNode args
+    def offset( int offset ) {
+        this.offset = offset
+    }
 
-                FullTextQuery fullTextQuery = createFullTextQuery()
+    def sort( String field, String order = ASC, type = null ) {
 
-                if ( maxResults > 0 ) {
-                    fullTextQuery.maxResults = maxResults
-                }
+        this.sort = field
+        this.reverse = order == DESC
 
-                fullTextQuery.firstResult = offset
+        if ( type ) {
 
-                if ( sort ) {
-                    sortType = sortType ?: SORT_TYPES[ClassPropertyFetcher.forClass( clazz ).getPropertyType( sort )] ?: SortField.STRING
-                    fullTextQuery.sort = new Sort( new SortField( sort, sortType, reverse ) )
-                }
+            switch ( type.class ) {
+                case Class:
+                    this.sortType = SORT_TYPES[type]
+                    break
 
-                return fullTextQuery.list()
+                case String:
+                    this.sortType = SortField."${type.toUpperCase()}"
+                    break
 
-            case COUNT:
+                case int:
+                case Integer:
+                    this.sortType = type
+                    break
+            }
 
-                initQueryBuilder()
-                invokeClosureNode args
-                return createFullTextQuery().resultSize
-
-            case GET_ANALYZER:
-
-                return fullTextSession.searchFactory.getAnalyzer( clazz )
-
-            case BELOW:
-                def params = [queryBuilder: queryBuilder, field: args[0], below: args[1]]
-                if ( args.size() == 3 ) { params.putAll args[2] }
-                leaf = new BelowComponent( params )
-                break
-
-            case ABOVE:
-                def params = [queryBuilder: queryBuilder, field: args[0], above: args[1]]
-                if ( args.size() == 3 ) { params.putAll args[2] }
-                leaf = new AboveComponent( params )
-                break
-
-            case BETWEEN:
-                def params = [queryBuilder: queryBuilder, field: args[0], from: args[1], to: args[2]]
-                if ( args.size() == 4 ) { params.putAll args[3] }
-                leaf = new BetweenComponent( params )
-                break
-
-            case ABOVE:
-                def params = [queryBuilder: queryBuilder, field: args[0], above: args[1]]
-                if ( args.size() == 3 ) { params.putAll args[2] }
-                leaf = new AboveComponent( params )
-                break
-
-            case KEYWORD:
-                def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
-                if ( args.size() == 3 ) { params.putAll args[2] }
-                leaf = new KeywordComponent( params )
-                break
-
-            case FUZZY:
-                def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
-                if ( args.size() == 3 ) { params.putAll args[2] }
-                leaf = new FuzzyComponent( params )
-                break
-
-            case WILDCARD:
-                def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
-                if ( args.size() == 3 ) { params.putAll args[2] }
-                leaf = new WildcardComponent( params )
-                break
-
-            case PHRASE:
-                def params = [queryBuilder: queryBuilder, field: args[0], sentence: args[1]]
-                if ( args.size() == 3 ) { params.putAll args[2] }
-                leaf = new PhraseComponent( params )
-                break
-
-            case MAX_RESULTS:
-                maxResults = args[0]
-                break
-
-            case OFFSET:
-                offset = args[0]
-                break
-
-            case SORT:
-                sort = args[0]
-                reverse = args.size() >= 2 && args[1] == DESC
-
-                if ( args.size() == 3 ) {
-
-                    switch ( args[2].class ) {
-                        case Class:
-                            sortType = SORT_TYPES[args[2]]
-                            break
-
-                        case String:
-                            sortType = SortField."${args[2].toUpperCase()}"
-                            break
-
-                        case int:
-                        case Integer:
-                            sortType = args[2]
-                            break
-                    }
-                }
-
-                break
-
-            case FILTER:
-
-                if ( args[0] instanceof Map ) {
-                    def filter = args[0]
-                    filterDefinitions.put filter.name, filter.params
-                } else {
-                    filterDefinitions.put args[0], null
-                }
-
-                break
-
-            case START_INDEXER_AND_WAIT:
-
-                initMassIndexer()
-                invokeClosureNode args
-                massIndexer.startAndWait()
-                return
-
-            case MASS_INDEXER_METHODS:
-
-                massIndexer = massIndexer.invokeMethod name, obj
-                break
-        }
-
-        if ( composite ) {
-
-            currentNode << composite
-            currentNode = composite
-
-            invokeClosureNode args
-
-            currentNode = currentNode?.parent ?: root
-
-        } else if ( leaf ) {
-
-            currentNode << leaf
-
+        } else {
+            this.sortType = SORT_TYPES[ClassPropertyFetcher.forClass( clazz ).getPropertyType( sort )] ?: SortField.STRING
         }
     }
 
-    def invokeClosureNode( args ) {
-        if ( args.size() == 1 && args[0] instanceof Closure ) {
-            Closure callable = args[0]
-            callable.delegate = this
-            callable.resolveStrategy = Closure.DELEGATE_FIRST
-            callable.call()
+    /**
+     *
+     * @return the scoped analyzer for this entity
+     */
+    def getAnalyzer( ) {
+        fullTextSession.searchFactory.getAnalyzer( clazz )
+    }
+
+    def filter( String filterName ) {
+        filterDefinitions.put filterName, null
+    }
+
+    def filter( Map filterParams ) {
+        filterDefinitions.put filterParams.name, filterParams.params
+    }
+
+    def below( field, below, Map optionalParams = [:] ) {
+        addLeaf new BelowComponent( [queryBuilder: queryBuilder, field: field, below: below] + optionalParams )
+    }
+
+    def above( field, above, Map optionalParams = [:] ) {
+        addLeaf new AboveComponent( [queryBuilder: queryBuilder, field: field, above: above] + optionalParams )
+    }
+
+    def between( field, from, to, Map optionalParams = [:] ) {
+        addLeaf new BetweenComponent( [queryBuilder: queryBuilder, field: field, from: from, to: to] + optionalParams )
+    }
+
+    def keyword( field, matching, Map optionalParams = [:] ) {
+        addLeaf new KeywordComponent( [queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams )
+    }
+
+    def fuzzy( field, matching, Map optionalParams = [:] ) {
+        addLeaf new FuzzyComponent( [queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams )
+    }
+
+    def wildcard( field, matching, Map optionalParams = [:] ) {
+        addLeaf new WildcardComponent( [queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams )
+    }
+
+    def phrase( field, sentence, Map optionalParams = [:] ) {
+        addLeaf new PhraseComponent( [queryBuilder: queryBuilder, field: field, sentence: sentence] + optionalParams )
+    }
+
+    Object invokeMethod( String name, Object args ) {
+        if ( name in MASS_INDEXER_METHODS ) {
+            massIndexer = massIndexer.invokeMethod name, args
+        } else {
+            throw new MissingMethodException( name, getClass(), args );
         }
+    }
+
+    def invokeClosureNode( Closure callable ) {
+        if ( !callable )
+            return
+
+        callable.delegate = this
+        callable.resolveStrategy = Closure.DELEGATE_FIRST
+        callable.call()
     }
 }

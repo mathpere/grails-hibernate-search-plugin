@@ -21,10 +21,6 @@ class SearchMappingGlobalConfig {
 
     def grailsApplication
 
-    private static final String ANALYZER = 'analyzer'
-    private static final String FILTER = 'filter'
-    private static final String FULL_TEXT_FILTER = 'fullTextFilter'
-
     private def currentMapping
 
     void processGlobalConfig( SearchMapping searchMapping ) {
@@ -42,56 +38,33 @@ class SearchMappingGlobalConfig {
         hibernateSearchConfig.call()
     }
 
-    def invokeMethod( String name, obj ) {
+    def analyzer( Map args, Closure filters = null ) {
+        currentMapping = currentMapping.analyzerDef( args.name, args.tokenizer )
 
-        def args = obj[0]
-
-        switch ( name ) {
-
-            case FULL_TEXT_FILTER:
-
-                currentMapping = currentMapping.fullTextFilterDef( args.name, args.impl )
-
-                if ( args.cache ) {
-                    currentMapping = currentMapping.cache( FilterCacheModeType."${args.cache.toUpperCase()}" )
-                }
-
-                break
-
-            case ANALYZER:
-
-                currentMapping = currentMapping.analyzerDef( args.name, args.tokenizer )
-
-                if ( obj.size() > 1 ) {
-
-                    def filters = obj[1]
-                    if ( filters && filters instanceof Closure ) {
-
-                        filters.delegate = this
-                        filters.resolveStrategy = Closure.DELEGATE_FIRST
-                        filters.call()
-                    }
-                }
-
-                break
-
-            case FILTER:
-
-                if ( args instanceof Class ) {
-
-                    currentMapping = currentMapping.filter( args )
-
-                } else if ( args instanceof Map ) {
-
-                    currentMapping = currentMapping.filter( args.factory )
-
-                    args.params?.each { k, v ->
-                        currentMapping.param( k.toString(), v.toString() )
-                    }
-                }
-
-                break
+        if ( filters ) {
+            filters.delegate = this
+            filters.resolveStrategy = Closure.DELEGATE_FIRST
+            filters.call()
         }
     }
 
+    def filter( Class filterImpl ) {
+        currentMapping = currentMapping.filter( filterImpl )
+    }
+
+    def filter( Map filterParams ) {
+        currentMapping = currentMapping.filter( filterParams.factory )
+
+        filterParams.params?.each { k, v ->
+            currentMapping.param( k.toString(), v.toString() )
+        }
+    }
+
+    def fullTextFilter( Map fullTextFilterParams ) {
+        currentMapping = currentMapping.fullTextFilterDef( fullTextFilterParams.name, fullTextFilterParams.impl )
+
+        if ( fullTextFilterParams.cache ) {
+            currentMapping = currentMapping.cache( FilterCacheModeType."${fullTextFilterParams.cache.toUpperCase()}" )
+        }
+    }
 }
