@@ -19,27 +19,14 @@ import org.hibernate.search.cfg.SearchMapping
 
 class SearchMappingGlobalConfig {
 
-    def grailsApplication
+    private def searchMapping
 
-    private def currentMapping
-
-    void processGlobalConfig( SearchMapping searchMapping ) {
-
-        this.currentMapping = searchMapping
-
-        def hibernateSearchConfig = grailsApplication.config.grails.plugins.hibernatesearch
-
-        if ( !hibernateSearchConfig || !hibernateSearchConfig instanceof Closure ) {
-            return
-        }
-
-        hibernateSearchConfig.delegate = this
-        hibernateSearchConfig.resolveStrategy = Closure.DELEGATE_FIRST
-        hibernateSearchConfig.call()
+    public SearchMappingGlobalConfig( SearchMapping searchMapping ) {
+        this.searchMapping = searchMapping
     }
 
     def analyzer( Map args, Closure filters = null ) {
-        currentMapping = currentMapping.analyzerDef( args.name, args.tokenizer )
+        searchMapping = searchMapping.analyzerDef( args.name, args.tokenizer )
 
         if ( filters ) {
             filters.delegate = this
@@ -49,22 +36,22 @@ class SearchMappingGlobalConfig {
     }
 
     def filter( Class filterImpl ) {
-        currentMapping = currentMapping.filter( filterImpl )
+        searchMapping = searchMapping.filter( filterImpl )
     }
 
     def filter( Map filterParams ) {
-        currentMapping = currentMapping.filter( filterParams.factory )
+        searchMapping = searchMapping.filter( filterParams.factory )
 
         filterParams.params?.each { k, v ->
-            currentMapping.param( k.toString(), v.toString() )
+            searchMapping.param( k.toString(), v.toString() )
         }
     }
 
     def fullTextFilter( Map fullTextFilterParams ) {
-        currentMapping = currentMapping.fullTextFilterDef( fullTextFilterParams.name, fullTextFilterParams.impl )
+        searchMapping = searchMapping.fullTextFilterDef( fullTextFilterParams.name, fullTextFilterParams.impl )
 
         if ( fullTextFilterParams.cache ) {
-            currentMapping = currentMapping.cache( FilterCacheModeType."${fullTextFilterParams.cache.toUpperCase()}" )
+            searchMapping = searchMapping.cache( FilterCacheModeType."${fullTextFilterParams.cache.toUpperCase()}" )
         }
     }
 }

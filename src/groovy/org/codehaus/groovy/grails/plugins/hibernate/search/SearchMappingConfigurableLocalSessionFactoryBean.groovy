@@ -14,15 +14,11 @@
  */
 package org.codehaus.groovy.grails.plugins.hibernate.search
 
-import java.lang.annotation.ElementType
 import org.codehaus.groovy.grails.commons.ClassPropertyFetcher
 import org.codehaus.groovy.grails.orm.hibernate.ConfigurableLocalSessionFactoryBean
 import org.hibernate.HibernateException
 import org.hibernate.cfg.Configuration
 import org.hibernate.search.Environment
-import org.hibernate.search.annotations.Index
-import org.hibernate.search.annotations.Resolution
-import org.hibernate.search.annotations.Store
 import org.hibernate.search.cfg.SearchMapping
 import org.springframework.jndi.JndiTemplate
 
@@ -31,12 +27,6 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
     private static final String DIRECTORY_PROVIDER = "hibernate.search.default.directory_provider"
     private static final String INDEX_BASE = "hibernate.search.default.indexBase"
     private static final String INDEX_BASE_JNDI_NAME = "hibernate.search.default.indexBaseJndiName"
-
-    def currentMapping
-    def currentSearchMapping
-    def currentSearchProperties
-
-    SearchMappingGlobalConfig searchMappingGlobalConfig
 
     @Override
     protected void postProcessConfiguration( Configuration config ) throws HibernateException {
@@ -62,42 +52,31 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
 
             def searchMapping = new SearchMapping()
 
-            searchMappingGlobalConfig.processGlobalConfig( searchMapping )
+            // global config
+            def hibernateSearchConfig = grailsApplication.config.grails.plugins.hibernatesearch
 
+            if ( hibernateSearchConfig && hibernateSearchConfig instanceof Closure ) {
+
+                def searchMappingGlobalConfig = new SearchMappingGlobalConfig( searchMapping )
+
+                hibernateSearchConfig.delegate = searchMappingGlobalConfig
+                hibernateSearchConfig.resolveStrategy = Closure.DELEGATE_FIRST
+                hibernateSearchConfig.call()
+
+            }
+
+            // entities config
             grailsApplication.domainClasses.each {
 
-                ClassPropertyFetcher cpf = ClassPropertyFetcher.forClass( it.clazz )
-                def searchClosure = cpf.getStaticPropertyValue( "search", Closure )
+                def searchClosure = ClassPropertyFetcher.forClass( it.clazz ).getStaticPropertyValue( "search", Closure )
 
                 if ( searchClosure ) {
 
-                    currentSearchMapping = [:]
-                    currentSearchProperties = [:]
+                    def searchMappingEntityConfig = new SearchMappingEntityConfig( searchMapping, it.clazz )
 
-                    searchClosure.delegate = this
+                    searchClosure.delegate = searchMappingEntityConfig
                     searchClosure.resolveStrategy = Closure.DELEGATE_FIRST
                     searchClosure.call()
-
-                    currentMapping = searchMapping.entity( it.clazz )
-
-                    def classBridge = currentSearchProperties.classBridge
-
-                    if ( classBridge ) {
-
-                        currentMapping = currentMapping.classBridge( classBridge['class'] )
-
-                        def params = classBridge["params"]
-
-                        params?.each {k, v ->
-                            currentMapping = currentMapping.param( k.toString(), v.toString() )
-                        }
-                    }
-
-                    currentMapping = currentMapping.indexed().property( "id", ElementType.FIELD ).documentId()
-
-                    currentSearchMapping.each {fieldName, argsList ->
-                        argsList.each {args -> mapField( fieldName, args )}
-                    }
                 }
             }
 
@@ -108,72 +87,4 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
         }
     }
 
-    def propertyMissing( String name, value ) {
-        currentSearchProperties[name] = value
-    }
-
-    def invokeMethod( String name, obj ) {
-        currentSearchMapping[name] = currentSearchMapping[name] ?: []
-        currentSearchMapping[name] << obj
-    }
-
-    def mapField( String name, obj ) {
-        obj = obj.class.isArray() ? obj : [obj]
-
-        def args = obj[0] ?: [:]
-
-        if ( args.indexEmbedded ) {
-
-            currentMapping = currentMapping.property( name, ElementType.FIELD ).indexEmbedded()
-
-            if ( args.indexEmbedded instanceof Map ) {
-                def depth = args.indexEmbedded["depth"]
-
-                if ( depth ) {
-                    currentMapping = currentMapping.depth( depth )
-                }
-            }
-        } else if ( args.containedIn ) {
-
-            currentMapping = currentMapping.property( name, ElementType.FIELD ).containedIn()
-
-        } else {
-            currentMapping = currentMapping.property( name, ElementType.FIELD ).field().name( args.name ?: name )
-
-            if ( currentSearchProperties.analyzer ) {
-                currentMapping = currentMapping.analyzer( currentSearchProperties.analyzer )
-            }
-
-            if ( args.analyzer ) {
-                currentMapping = currentMapping.analyzer( args.analyzer )
-            }
-
-            if ( args.index ) {
-                currentMapping = currentMapping.index( Index."${args.index.toUpperCase()}" )
-            }
-
-            if ( args.store ) {
-                currentMapping = currentMapping.store( Store."${args.store.toUpperCase()}" )
-            }
-
-            if ( args.numeric ) {
-                currentMapping = currentMapping.numericField().precisionStep( args.numeric )
-            }
-
-            if ( args.date ) {
-                currentMapping = currentMapping.dateBridge( Resolution."${args.date.toUpperCase()}" )
-            }
-
-            if ( args.bridge ) {
-
-                currentMapping = currentMapping.bridge( args.bridge["class"] )
-
-                def params = args.bridge["params"]
-
-                params?.each {k, v ->
-                    currentMapping = currentMapping.param( k.toString(), v.toString() )
-                }
-            }
-        }
-    }
 }

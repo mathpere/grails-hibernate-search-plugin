@@ -23,14 +23,9 @@ class HibernateSearchGrailsPlugin {
     def scm = [url: 'https://github.com/mathpere/grails-hibernate-search-plugin']
 
     def doWithSpring = {
-        searchMappingGlobalConfig(SearchMappingGlobalConfig) {
-            grailsApplication = ref("grailsApplication")
-        }
-
         sessionFactory(SearchMappingConfigurableLocalSessionFactoryBean) { bean ->
             // see org.codehaus.groovy.grails.plugins.orm.hibernate.HibernatePluginSupport:
             bean.parent = 'abstractSessionFactoryBeanConfig'
-            searchMappingGlobalConfig = ref("searchMappingGlobalConfig")
         }
     }
 
