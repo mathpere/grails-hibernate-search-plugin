@@ -23,6 +23,7 @@ import org.hibernate.search.FullTextSession
 import org.hibernate.search.Search
 import org.hibernate.search.query.dsl.FieldCustomization
 import org.hibernate.search.query.dsl.QueryBuilder
+import org.hibernate.search.MassIndexer
 
 class HibernateSearchQueryBuilder {
 
@@ -51,6 +52,10 @@ class HibernateSearchQueryBuilder {
             assert component instanceof Component: "'component' should be an instance of Component"
             component.parent = this
             children << component
+        }
+
+        def toString( indent ) {
+            [( "-" * indent ) + this.class.simpleName, children.collect { it.toString( indent + 1 ) }].flatten().findAll {it}.join( "\n" )
         }
     }
 
@@ -191,6 +196,7 @@ class HibernateSearchQueryBuilder {
     private static final String LIST = 'list'
     private static final String COUNT = 'count'
     private static final String GET_ANALYZER = 'getAnalyzer'
+    private static final String START_INDEXER_AND_WAIT = 'startIndexerAndWait'
 
     private static final String SHOULD = 'should'
     private static final String MUST = 'must'
@@ -208,9 +214,13 @@ class HibernateSearchQueryBuilder {
     private static final String DESC = 'desc'
     private static final String FILTER = 'filter'
 
-    private final QueryBuilder queryBuilder
+    private static final List MASS_INDEXER_METHODS = MassIndexer.methods.findAll { it.returnType == MassIndexer }*.name
+
     private final FullTextSession fullTextSession
     private final clazz
+
+    private QueryBuilder queryBuilder
+    private MassIndexer massIndexer
 
     def sort
     def sortType
@@ -225,8 +235,6 @@ class HibernateSearchQueryBuilder {
     public HibernateSearchQueryBuilder( clazz, session ) {
         this.clazz = clazz
         this.fullTextSession = Search.getFullTextSession( session )
-        this.queryBuilder = fullTextSession.searchFactory.buildQueryBuilder().forEntity( clazz ).get()
-        this.root = new MustComponent( queryBuilder: queryBuilder )
     }
 
     private FullTextQuery createFullTextQuery( ) {
@@ -244,143 +252,42 @@ class HibernateSearchQueryBuilder {
         query
     }
 
+    private initQueryBuilder( ) {
+        queryBuilder = fullTextSession.searchFactory.buildQueryBuilder().forEntity( clazz ).get()
+        root = new MustComponent( queryBuilder: queryBuilder )
+        currentNode = root
+    }
+
+    private initMassIndexer( ) {
+        massIndexer = fullTextSession.createIndexer( clazz )
+    }
+
     public Object invokeMethod( String name, Object obj ) {
 
         def args = obj.class.isArray() ? obj : [obj]
 
-        if ( args.size() == 1 && args[0] instanceof Closure ) {
-
-            def composite
-
-            currentNode = ( currentNode?.parent ) ?: root
-
-            switch ( name ) {
-                case MUST:
-                    composite = new MustComponent( queryBuilder: queryBuilder )
-                    break
-
-                case SHOULD:
-                    composite = new ShouldComponent( queryBuilder: queryBuilder )
-                    break
-
-                case MUST_NOT:
-                    composite = new MustNotComponent( queryBuilder: queryBuilder )
-                    break
-            }
-
-            if ( composite ) {
-                currentNode << composite
-                currentNode = composite
-            }
-
-            invokeClosureNode( args[0] )
-
-        } else {
-
-            def leaf
-
-            switch ( name ) {
-
-                case BELOW:
-                    def params = [queryBuilder: queryBuilder, field: args[0], below: args[1]]
-                    if ( args.size() == 3 ) { params.putAll args[2] }
-                    leaf = new BelowComponent( params )
-                    break
-
-                case ABOVE:
-                    def params = [queryBuilder: queryBuilder, field: args[0], above: args[1]]
-                    if ( args.size() == 3 ) { params.putAll args[2] }
-                    leaf = new AboveComponent( params )
-                    break
-
-                case BETWEEN:
-                    def params = [queryBuilder: queryBuilder, field: args[0], from: args[1], to: args[2]]
-                    if ( args.size() == 4 ) { params.putAll args[3] }
-                    leaf = new BetweenComponent( params )
-                    break
-
-                case ABOVE:
-                    def params = [queryBuilder: queryBuilder, field: args[0], above: args[1]]
-                    if ( args.size() == 3 ) { params.putAll args[2] }
-                    leaf = new AboveComponent( params )
-                    break
-
-                case KEYWORD:
-                    def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
-                    if ( args.size() == 3 ) { params.putAll args[2] }
-                    leaf = new KeywordComponent( params )
-                    break
-
-                case FUZZY:
-                    def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
-                    if ( args.size() == 3 ) { params.putAll args[2] }
-                    leaf = new FuzzyComponent( params )
-                    break
-
-                case WILDCARD:
-                    def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
-                    if ( args.size() == 3 ) { params.putAll args[2] }
-                    leaf = new WildcardComponent( params )
-                    break
-
-                case PHRASE:
-                    def params = [queryBuilder: queryBuilder, field: args[0], sentence: args[1]]
-                    if ( args.size() == 3 ) { params.putAll args[2] }
-                    leaf = new PhraseComponent( params )
-                    break
-
-                case MAX_RESULTS:
-                    maxResults = args[0]
-                    break
-
-                case OFFSET:
-                    offset = args[0]
-                    break
-
-                case SORT:
-                    sort = args[0]
-                    reverse = args.size() >= 2 && args[1] == DESC
-
-                    if ( args.size() == 3 ) {
-
-                        switch ( args[2].class ) {
-                            case Class:
-                                sortType = SORT_TYPES[args[2]]
-                                break
-
-                            case String:
-                                sortType = SortField."${args[2].toUpperCase()}"
-                                break
-
-                            case int:
-                            case Integer:
-                                sortType = args[2]
-                                break
-                        }
-                    }
-
-                    break
-
-                case FILTER:
-
-                    if ( args[0] instanceof Map ) {
-                        def filter = args[0]
-                        filterDefinitions.put filter.name, filter.params
-                    } else {
-                        filterDefinitions.put args[0], null
-                    }
-
-                    break
-            }
-
-            if ( leaf ) {
-                currentNode << leaf
-            }
-        }
+        def leaf
+        def composite
 
         switch ( name ) {
 
+            case MUST:
+                composite = new MustComponent( queryBuilder: queryBuilder )
+                break
+
+            case SHOULD:
+                composite = new ShouldComponent( queryBuilder: queryBuilder )
+                break
+
+            case MUST_NOT:
+                composite = new MustNotComponent( queryBuilder: queryBuilder )
+                break
+
             case LIST:
+
+                initQueryBuilder()
+
+                invokeClosureNode args
 
                 FullTextQuery fullTextQuery = createFullTextQuery()
 
@@ -391,35 +298,148 @@ class HibernateSearchQueryBuilder {
                 fullTextQuery.firstResult = offset
 
                 if ( sort ) {
-
                     sortType = sortType ?: SORT_TYPES[ClassPropertyFetcher.forClass( clazz ).getPropertyType( sort )] ?: SortField.STRING
-
                     fullTextQuery.sort = new Sort( new SortField( sort, sortType, reverse ) )
-
                 }
 
-                fullTextQuery.list()
-
-                break
+                return fullTextQuery.list()
 
             case COUNT:
 
-                FullTextQuery fullTextQuery = createFullTextQuery()
-                fullTextQuery.resultSize
-
-                break
+                initQueryBuilder()
+                invokeClosureNode args
+                return createFullTextQuery().resultSize
 
             case GET_ANALYZER:
 
-                fullTextSession.getSearchFactory().getAnalyzer( clazz )
+                return fullTextSession.searchFactory.getAnalyzer( clazz )
+
+            case BELOW:
+                def params = [queryBuilder: queryBuilder, field: args[0], below: args[1]]
+                if ( args.size() == 3 ) { params.putAll args[2] }
+                leaf = new BelowComponent( params )
+                break
+
+            case ABOVE:
+                def params = [queryBuilder: queryBuilder, field: args[0], above: args[1]]
+                if ( args.size() == 3 ) { params.putAll args[2] }
+                leaf = new AboveComponent( params )
+                break
+
+            case BETWEEN:
+                def params = [queryBuilder: queryBuilder, field: args[0], from: args[1], to: args[2]]
+                if ( args.size() == 4 ) { params.putAll args[3] }
+                leaf = new BetweenComponent( params )
+                break
+
+            case ABOVE:
+                def params = [queryBuilder: queryBuilder, field: args[0], above: args[1]]
+                if ( args.size() == 3 ) { params.putAll args[2] }
+                leaf = new AboveComponent( params )
+                break
+
+            case KEYWORD:
+                def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
+                if ( args.size() == 3 ) { params.putAll args[2] }
+                leaf = new KeywordComponent( params )
+                break
+
+            case FUZZY:
+                def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
+                if ( args.size() == 3 ) { params.putAll args[2] }
+                leaf = new FuzzyComponent( params )
+                break
+
+            case WILDCARD:
+                def params = [queryBuilder: queryBuilder, field: args[0], matching: args[1]]
+                if ( args.size() == 3 ) { params.putAll args[2] }
+                leaf = new WildcardComponent( params )
+                break
+
+            case PHRASE:
+                def params = [queryBuilder: queryBuilder, field: args[0], sentence: args[1]]
+                if ( args.size() == 3 ) { params.putAll args[2] }
+                leaf = new PhraseComponent( params )
+                break
+
+            case MAX_RESULTS:
+                maxResults = args[0]
+                break
+
+            case OFFSET:
+                offset = args[0]
+                break
+
+            case SORT:
+                sort = args[0]
+                reverse = args.size() >= 2 && args[1] == DESC
+
+                if ( args.size() == 3 ) {
+
+                    switch ( args[2].class ) {
+                        case Class:
+                            sortType = SORT_TYPES[args[2]]
+                            break
+
+                        case String:
+                            sortType = SortField."${args[2].toUpperCase()}"
+                            break
+
+                        case int:
+                        case Integer:
+                            sortType = args[2]
+                            break
+                    }
+                }
 
                 break
+
+            case FILTER:
+
+                if ( args[0] instanceof Map ) {
+                    def filter = args[0]
+                    filterDefinitions.put filter.name, filter.params
+                } else {
+                    filterDefinitions.put args[0], null
+                }
+
+                break
+
+            case START_INDEXER_AND_WAIT:
+
+                initMassIndexer()
+                invokeClosureNode args
+                massIndexer.startAndWait()
+                return
+
+            case MASS_INDEXER_METHODS:
+
+                massIndexer = massIndexer.invokeMethod name, obj
+                break
+        }
+
+        if ( composite ) {
+
+            currentNode << composite
+            currentNode = composite
+
+            invokeClosureNode args
+
+            currentNode = currentNode?.parent ?: root
+
+        } else if ( leaf ) {
+
+            currentNode << leaf
+
         }
     }
 
-    def invokeClosureNode( callable ) {
-        callable.delegate = this
-        callable.resolveStrategy = Closure.DELEGATE_FIRST
-        callable.call()
+    def invokeClosureNode( args ) {
+        if ( args.size() == 1 && args[0] instanceof Closure ) {
+            Closure callable = args[0]
+            callable.delegate = this
+            callable.resolveStrategy = Closure.DELEGATE_FIRST
+            callable.call()
+        }
     }
 }
