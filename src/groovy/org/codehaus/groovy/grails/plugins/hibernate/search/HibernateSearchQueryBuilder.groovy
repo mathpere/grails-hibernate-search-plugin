@@ -373,6 +373,32 @@ class HibernateSearchQueryBuilder {
     }
 
     /**
+     * Execute code within programmatic hibernate transaction
+     *
+     * @param callable a closure which takes an Hibernate Transaction as single argument.
+     * @return the result of callable
+     */
+    def withTransaction( Closure callable ) {
+
+        def transaction = fullTextSession.beginTransaction()
+
+        try {
+
+            def result = callable.call( transaction )
+
+            if ( transaction.isActive() ) {
+                transaction.commit()
+            }
+
+            result
+
+        } catch ( ex ) {
+            transaction.rollback()
+            throw ex
+        }
+    }
+
+    /**
      *
      * @return the scoped analyzer for this entity
      */
