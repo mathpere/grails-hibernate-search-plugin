@@ -257,8 +257,7 @@ sort() method accepts an optional second parameter to specify the sort order: "a
 MyDomainClass.search().list {
    ...
    sort "publishedDate", "asc"
-   ...
-   
+   ...  
 }
 ```
 
@@ -464,14 +463,11 @@ MyDomainClass.search().list {
 If you don't want to define named filter within Config.groovy, you can also filter results as following:
 
 ```groovy
-
-// without params:
 MyDomainClass.search().list {
   ...
   filter = new BestDriversFilter()
   ...
 }
-
 ```
 
 
