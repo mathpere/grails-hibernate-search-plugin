@@ -154,6 +154,46 @@ class MyDomainClass {
 }
 ```
 
+### Index
+
+#### Using MassIndexer
+
+The plugin lets you to create index of any indexed entity as following:
+
+```groovy
+MyDomainClass.search().createIndexAndWait()
+```
+
+This method relies on MassIndexer and can be configured like this:
+
+```groovy
+
+MyDomainClass.search().createIndexAndWait {
+   ...
+   batchSizeToLoadObjects 25
+   cacheMode org.hibernate.CacheMode.NORMAL
+   threadsToLoadObjects 5
+   ...
+}
+
+```
+
+#### Script
+
+Also, the plugin provides you a gant script to create index for data already present in your database:
+
+##### Create Lucene index for all indexed entities
+
+```shell
+grails hs-create-index
+```
+
+##### Create Lucene index for a given domain class
+
+```shell
+grails hs-create-index com.test.MyDomainClass
+```
+
 ### Search
 
 The plugin provides you dynamic method to search for indexed entities. 
