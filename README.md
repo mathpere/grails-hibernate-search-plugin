@@ -249,6 +249,67 @@ class SomeController {
 }
 ```
 
+#### Sorting the results
+
+sort() method accepts an optional second parameter to specify the sort order: "asc"/"desc". Default is "asc".
+
+```groovy
+MyDomainClass.search().list {
+   ...
+   sort "publishedDate", "asc"
+   ...
+   
+}
+```
+
+If for some reasons, you want to sort results with a property which doesn't exist in your domain class, you should specify the sort type with a third parameter (default is String). You have three ways to achieve this:
+
+##### By Specifying the type (could be Integer, String, Date, Double, Float, Long, Bigdecimal):
+
+```groovy
+MyDomainClass.search().list {
+   ...
+   sort "my_special_field", "asc", Integer
+   ...
+}
+```
+
+##### By Specifying directly its sort field (Lucene):
+
+```groovy
+def items = Item.search().list {
+  ...
+  sort "my_special_field", "asc", org.apache.lucene.search.SortField.STRING_VAL
+  ...
+}
+```
+
+##### By specifying its sort field with string:
+
+```groovy
+def items = Item.search().list {
+  ...
+  sort "my_special_field", "asc", "string_val"
+  ...
+}
+```
+
+
+#### Support for ignoreAnalyzer() or ignoreFieldBridge() functions
+
+When searching for data, you may want to not use the field bridge or the analyzer. All methods (below, above, between, keyword, fuzzy) accept an optional map parameter to support this:
+
+```groovy
+
+MyDomainClass.search().list {
+
+   keyword "status", Status.DISABLED, [ignoreAnalyzer: true]
+   
+   wildcard "description", "hellow*", [ignoreFieldBridge: true]
+   
+}
+```
+
 #### Counting the results
 
 You can also retrieve the number of results by using 'count' method:
