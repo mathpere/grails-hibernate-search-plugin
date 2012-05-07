@@ -53,7 +53,7 @@ You can also define the path to your indexes with JNDI configuration as followin
 }
 ```
 
-###  Mapping entities to the index structure
+###  Indexing
 
 #### Mark your domain classes as indexable
 
@@ -154,9 +154,7 @@ class MyDomainClass {
 }
 ```
 
-### Index
-
-#### Using MassIndexer
+#### Create index for existing data
 
 The plugin lets you to create index of any indexed entity as following:
 
@@ -178,7 +176,7 @@ MyDomainClass.search().createIndexAndWait {
 
 ```
 
-#### Script
+#### Create index for existing data using script
 
 Also, the plugin provides you a gant script to create index for data already present in your database:
 
