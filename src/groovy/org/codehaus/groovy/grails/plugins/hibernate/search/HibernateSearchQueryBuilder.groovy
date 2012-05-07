@@ -24,6 +24,7 @@ import org.hibernate.search.Search
 import org.hibernate.search.query.dsl.FieldCustomization
 import org.hibernate.search.query.dsl.QueryBuilder
 import org.hibernate.search.MassIndexer
+import org.apache.lucene.search.Filter
 
 class HibernateSearchQueryBuilder {
 
@@ -215,6 +216,8 @@ class HibernateSearchQueryBuilder {
     private def root
     private def currentNode
 
+    private Filter filter
+
     public HibernateSearchQueryBuilder( clazz, session ) {
         this.clazz = clazz
         this.fullTextSession = Search.getFullTextSession( session )
@@ -230,6 +233,10 @@ class HibernateSearchQueryBuilder {
             filterParams?.each { k, v ->
                 filter.setParameter( k, v )
             }
+        }
+
+        if ( filter ) {
+            query.filter = filter
         }
 
         query
