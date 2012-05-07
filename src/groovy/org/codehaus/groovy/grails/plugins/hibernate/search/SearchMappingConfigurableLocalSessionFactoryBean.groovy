@@ -34,7 +34,7 @@ class SearchMappingConfigurableLocalSessionFactoryBean extends ConfigurableLocal
 
         try {
 
-            def properties = config.getProperties()
+            def properties = config.properties
 
             if ( !properties.containsKey( DIRECTORY_PROVIDER ) ) {
                 properties.setProperty( DIRECTORY_PROVIDER, "filesystem" )
