@@ -40,7 +40,7 @@ target( hsCreateIndex: "Create Lucene index for all domain classes or the given 
             grailsConsole.addStatus "Creating Lucene index for entity [${domainClass.name}]...."
 
             def start = new Date()
-            domainClass.search().startIndexerAndWait()
+            domainClass.search().createIndexAndWait()
 
             grailsConsole.addStatus "   built in ${( new Date().time - start.time ) / 1000}s"
 
@@ -60,7 +60,7 @@ target( hsCreateIndex: "Create Lucene index for all domain classes or the given 
 
             def start = new Date()
 
-            it.search().startIndexerAndWait()
+            it.search().createIndexAndWait()
 
             grailsConsole.addStatus "   built in ${( new Date().time - start.time ) / 1000}s\n"
 

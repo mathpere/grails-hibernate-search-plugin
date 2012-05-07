@@ -286,7 +286,7 @@ class HibernateSearchQueryBuilder {
      *
      * @param massIndexerDsl
      */
-    def startIndexerAndWait( Closure massIndexerDsl = null ) {
+    def createIndexAndWait( Closure massIndexerDsl = null ) {
 
         massIndexer = fullTextSession.createIndexer( clazz )
 
