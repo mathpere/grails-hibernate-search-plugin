@@ -1,12 +1,11 @@
 import org.codehaus.groovy.grails.commons.ClassPropertyFetcher
+import org.codehaus.groovy.grails.plugins.hibernate.search.HibernateSearchQueryBuilder
 import org.codehaus.groovy.grails.plugins.hibernate.search.SearchMappingConfigurableLocalSessionFactoryBean
-import org.codehaus.groovy.grails.plugins.hibernate.search.SearchPersistentMethod
+import org.hibernate.Session
 import org.hibernate.search.annotations.Indexed
 import org.springframework.core.annotation.AnnotationUtils
-import org.springframework.orm.hibernate3.HibernateTemplate
-import org.hibernate.Session
-import org.codehaus.groovy.grails.plugins.hibernate.search.HibernateSearchQueryBuilder
 import org.springframework.orm.hibernate3.HibernateCallback
+import org.springframework.orm.hibernate3.HibernateTemplate
 
 class HibernateSearchGrailsPlugin {
     def version = "0.6.0"
