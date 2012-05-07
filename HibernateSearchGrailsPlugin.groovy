@@ -3,10 +3,9 @@ import org.codehaus.groovy.grails.plugins.hibernate.search.SearchMappingConfigur
 import org.codehaus.groovy.grails.plugins.hibernate.search.SearchPersistentMethod
 import org.hibernate.search.annotations.Indexed
 import org.springframework.core.annotation.AnnotationUtils
-import org.codehaus.groovy.grails.plugins.hibernate.search.SearchMappingGlobalConfig
 
 class HibernateSearchGrailsPlugin {
-    def version = "0.5.1"
+    def version = "0.6.0"
     def grailsVersion = "2.0 > *"
     def loadAfter = ['hibernate']
     def title = "Hibernate Search Plugin"
