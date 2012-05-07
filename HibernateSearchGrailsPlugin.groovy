@@ -41,9 +41,17 @@ class HibernateSearchGrailsPlugin {
             def clazz = grailsClass.clazz
 
             if ( ClassPropertyFetcher.forClass( clazz ).getStaticPropertyValue( "search", Closure ) || AnnotationUtils.isAnnotationDeclaredLocally( Indexed, clazz ) ) {
+
                 grailsClass.metaClass.static.search = {
                     hibernateTemplate.execute( { Session session ->
                         new HibernateSearchQueryBuilder( clazz, session )
+                    } as HibernateCallback )
+                }
+
+                grailsClass.metaClass.search = {
+                    def instance = delegate
+                    hibernateTemplate.execute( { Session session ->
+                        new HibernateSearchQueryBuilder( clazz, instance, session )
                     } as HibernateCallback )
                 }
             }

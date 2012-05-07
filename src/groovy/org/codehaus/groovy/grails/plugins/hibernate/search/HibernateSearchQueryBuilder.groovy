@@ -203,6 +203,8 @@ class HibernateSearchQueryBuilder {
 
     private final FullTextSession fullTextSession
     private final clazz
+    private final instance
+    private final staticContext
 
     private QueryBuilder queryBuilder
     private MassIndexer massIndexer
@@ -219,9 +221,15 @@ class HibernateSearchQueryBuilder {
 
     Filter filter
 
-    public HibernateSearchQueryBuilder( clazz, Session session ) {
+    HibernateSearchQueryBuilder( clazz, instance, Session session ) {
         this.clazz = clazz
         this.fullTextSession = Search.getFullTextSession( session )
+        this.instance = instance
+        this.staticContext = instance != null
+    }
+
+    HibernateSearchQueryBuilder( clazz, Session session ) {
+        this( clazz, null, session )
     }
 
     private FullTextQuery createFullTextQuery( ) {
@@ -372,6 +380,14 @@ class HibernateSearchQueryBuilder {
         fullTextSession.searchFactory.getAnalyzer( clazz )
     }
 
+    def index( ) {
+        if ( staticContext ) {
+            fullTextSession.index( instance )
+        } else {
+            throw new MissingMethodException( "index", getClass(), [] as Object[] )
+        }
+    }
+
     def filter( String filterName ) {
         filterDefinitions.put filterName, null
     }
@@ -412,7 +428,7 @@ class HibernateSearchQueryBuilder {
         if ( name in MASS_INDEXER_METHODS ) {
             massIndexer = massIndexer.invokeMethod name, args
         } else {
-            throw new MissingMethodException( name, getClass(), args );
+            throw new MissingMethodException( name, getClass(), args )
         }
     }
 
