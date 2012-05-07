@@ -7,15 +7,15 @@ includeTargets << grailsScript( '_GrailsBootstrap' )
 
 USAGE = """
     Usage:
-       grails hs-start-indexer
+       grails hs-create-index
 
-       >> Start building Lucene index for all indexed entities
+       >> Create Lucene index for all indexed entities
 
-       grails hs-start-indexer <domain-class-name>
+       grails hs-create-indexer <domain-class-name>
 
-       >> Start building Lucene index for the given domain class
+       >> Create Lucene index for the given domain class
 
-    Example: grails hs-start-indexer com.yourapp.Book
+    Example: grails hs-create-index com.yourapp.Book
 
 """
 
@@ -23,7 +23,7 @@ isSearchable = { domainClass ->
     ClassPropertyFetcher.forClass( domainClass ).getStaticPropertyValue( "search", Closure ) || AnnotationUtils.isAnnotationDeclaredLocally( Indexed, domainClass )
 }
 
-target( hsStartIndexer: "Start building Lucene index for all domain classes or the given domain class" ) {
+target( hsCreateIndex: "Create Lucene index for all domain classes or the given domain class" ) {
 
     depends( configureProxy, packageApp, classpath, loadApp, configureApp )
 
@@ -37,7 +37,7 @@ target( hsStartIndexer: "Start building Lucene index for all domain classes or t
 
         if ( isSearchable( domainClass ) ) {
 
-            grailsConsole.addStatus "Start building Lucene index for entity [${domainClass.name}]...."
+            grailsConsole.addStatus "Creating Lucene index for entity [${domainClass.name}]...."
 
             def start = new Date()
             domainClass.search().startIndexerAndWait()
@@ -56,7 +56,7 @@ target( hsStartIndexer: "Start building Lucene index for all domain classes or t
 
         grailsApplication.domainClasses*.clazz.findAll( isSearchable ).each {
 
-            grailsConsole.addStatus "Start building Lucene index for entity [${it.name}]...."
+            grailsConsole.addStatus "Creating Lucene index for entity [${it.name}]...."
 
             def start = new Date()
 
@@ -72,4 +72,4 @@ target( hsStartIndexer: "Start building Lucene index for all domain classes or t
 }
 
 
-setDefaultTarget 'hsStartIndexer'
+setDefaultTarget 'hsCreateIndex'
