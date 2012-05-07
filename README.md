@@ -361,6 +361,21 @@ MyDomainClass.search().list {
 
 ```
 
+
+If you don't want to define named filter within Config.groovy, you can also filter results as following:
+
+```groovy
+
+// without params:
+MyDomainClass.search().list {
+  ...
+  filter = new BestDriversFilter()
+  ...
+}
+
+```
+
+
 ## Bug tracker
 
 Please report any issue on GitHub: 
