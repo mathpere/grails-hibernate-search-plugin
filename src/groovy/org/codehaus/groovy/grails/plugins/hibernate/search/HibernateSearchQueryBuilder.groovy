@@ -14,17 +14,18 @@
  */
 package org.codehaus.groovy.grails.plugins.hibernate.search
 
+import org.apache.lucene.search.Filter
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.Sort
 import org.apache.lucene.search.SortField
 import org.grails.datastore.mapping.reflect.ClassPropertyFetcher
+import org.hibernate.Session
 import org.hibernate.search.FullTextQuery
 import org.hibernate.search.FullTextSession
+import org.hibernate.search.MassIndexer
 import org.hibernate.search.Search
 import org.hibernate.search.query.dsl.FieldCustomization
 import org.hibernate.search.query.dsl.QueryBuilder
-import org.hibernate.search.MassIndexer
-import org.apache.lucene.search.Filter
 
 class HibernateSearchQueryBuilder {
 
@@ -216,9 +217,9 @@ class HibernateSearchQueryBuilder {
     private def root
     private def currentNode
 
-    private Filter filter
+    Filter filter
 
-    public HibernateSearchQueryBuilder( clazz, session ) {
+    public HibernateSearchQueryBuilder( clazz, Session session ) {
         this.clazz = clazz
         this.fullTextSession = Search.getFullTextSession( session )
     }
