@@ -192,6 +192,32 @@ grails hs-create-index
 grails hs-create-index com.test.MyDomainClass
 ```
 
+#### Manual index changes
+
+##### Adding instances to index
+
+```groovy
+
+// index only updated at commit time
+MyDomainClass.search().withTransaction { transaction ->
+   MyDomainClass.findAll().each {
+      it.search().index()
+   }
+}
+```
+
+##### Deleting isntances from index
+
+```groovy
+
+// index only updated at commit time
+MyDomainClass.search().withTransaction { transaction ->
+   MyDomainClass.findAll().each {
+      it.search().purge()
+   }
+}
+```
+
 ### Search
 
 The plugin provides you dynamic method to search for indexed entities. 
