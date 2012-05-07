@@ -225,7 +225,7 @@ class HibernateSearchQueryBuilder {
         this.clazz = clazz
         this.fullTextSession = Search.getFullTextSession( session )
         this.instance = instance
-        this.staticContext = instance != null
+        this.staticContext = instance == null
     }
 
     HibernateSearchQueryBuilder( clazz, Session session ) {
@@ -380,11 +380,27 @@ class HibernateSearchQueryBuilder {
         fullTextSession.searchFactory.getAnalyzer( clazz )
     }
 
+    /**
+     * Force the (re)indexing of a given <b>managed</b> object.
+     * Indexation is batched per transaction: if a transaction is active, the operation
+     * will not affect the index at least until commit.
+     */
     def index( ) {
-        if ( staticContext ) {
+        if ( !staticContext ) {
             fullTextSession.index( instance )
         } else {
             throw new MissingMethodException( "index", getClass(), [] as Object[] )
+        }
+    }
+
+    /**
+     * Remove the entity from the index.
+     */
+    def purge( ) {
+        if ( !staticContext ) {
+            fullTextSession.purge( clazz, instance.id )
+        } else {
+            throw new MissingMethodException( "purge", getClass(), [] as Object[] )
         }
     }
 
