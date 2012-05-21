@@ -215,6 +215,7 @@ class HibernateSearchQueryBuilder {
     private def maxResults = 0
     private def offset = 0
     private def filterDefinitions = [:]
+    private def projection = []
 
     private def root
     private def currentNode
@@ -246,6 +247,10 @@ class HibernateSearchQueryBuilder {
 
         if ( filter ) {
             query.filter = filter
+        }
+
+        if ( projection ) {
+            query.setProjection projection as String[]
         }
 
         query
@@ -343,6 +348,10 @@ class HibernateSearchQueryBuilder {
 
     def offset( int offset ) {
         this.offset = offset
+    }
+
+    def projection( String... projection ) {
+        this.projection.addAll( projection )
     }
 
     def sort( String field, String order = ASC, type = null ) {
