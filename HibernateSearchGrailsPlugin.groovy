@@ -1,4 +1,5 @@
 import org.codehaus.groovy.grails.commons.ClassPropertyFetcher
+import org.codehaus.groovy.grails.plugins.hibernate.search.HibernateSearchConfig
 import org.codehaus.groovy.grails.plugins.hibernate.search.HibernateSearchQueryBuilder
 import org.codehaus.groovy.grails.plugins.hibernate.search.SearchMappingConfigurableLocalSessionFactoryBean
 import org.hibernate.Session
@@ -56,5 +57,21 @@ class HibernateSearchGrailsPlugin {
                 }
             }
         }
+
+        // config
+        def hibernateSearchConfig = application.config.grails.plugins.hibernatesearch
+
+        if ( hibernateSearchConfig && hibernateSearchConfig instanceof Closure ) {
+
+            hibernateTemplate.execute( { Session session ->
+
+                hibernateSearchConfig.delegate = new HibernateSearchConfig( session )
+                hibernateSearchConfig.resolveStrategy = Closure.DELEGATE_FIRST
+                hibernateSearchConfig.call()
+
+            } as HibernateCallback )
+
+        }
+
     }
 }

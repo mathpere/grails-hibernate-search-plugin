@@ -54,4 +54,8 @@ class SearchMappingGlobalConfig {
             searchMapping = searchMapping.cache( FilterCacheModeType."${fullTextFilterParams.cache.toUpperCase()}" )
         }
     }
+
+    Object invokeMethod( String name, Object args ) {
+        // makes it possible to ignore not concerned config
+    }
 }
