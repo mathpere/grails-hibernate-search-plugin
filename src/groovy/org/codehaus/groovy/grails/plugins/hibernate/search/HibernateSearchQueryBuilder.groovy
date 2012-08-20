@@ -439,6 +439,10 @@ class HibernateSearchQueryBuilder {
         }
     }
 
+    def purgeAll( ) {
+        fullTextSession.purgeAll( clazz )
+    }
+
     def filter( String filterName ) {
         filterDefinitions.put filterName, null
     }
