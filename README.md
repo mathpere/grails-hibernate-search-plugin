@@ -206,7 +206,7 @@ MyDomainClass.search().withTransaction { transaction ->
 }
 ```
 
-##### Deleting isntances from index
+##### Deleting instances from index
 
 ```groovy
 
@@ -217,6 +217,40 @@ MyDomainClass.search().withTransaction { transaction ->
    }
 }
 ```
+
+##### Rebuild index on start
+
+Hibernate Search offers an option to rebuild the whole index using the MassIndexer API. This plugin provides a configuration which lets you to rebuild automatically your indexes on startup.
+
+To use the default options of the MassIndexer API, simply provide this option into your Config.groovy:
+
+```groovy
+
+
+grails.plugins.hibernatesearch = {
+    rebuildIndexOnStart true
+}
+
+```
+
+If you need to tune the MassIndexer API, you could specify options with a closure as following:
+
+```groovy
+
+grails.plugins.hibernatesearch = {
+
+    rebuildIndexOnStart {
+		batchSizeToLoadObjects 30 
+		threadsForSubsequentFetching 8 	
+		threadsToLoadObjects 4 
+		threadsForIndexWriter 3 
+		cacheMode CacheMode.NORMAL
+    }
+
+}
+
+```
+
 
 ### Search
 
