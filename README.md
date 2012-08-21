@@ -391,6 +391,43 @@ def myDomainClasses = MyDomainClass.search().count {
 ```
 
 
+#### Support for projections
+
+Hibernate Search lets you to return only a subset of properties rather than the whole domain object. It makes it possible to avoid to query the database. This plugin supports this feature:
+
+```groovy
+def myDomainClasses = MyDomainClass.search().list {
+
+    projection "author", "body"
+
+}
+
+myDomainClasses.each { result ->
+
+    def author = result[0]
+    def body  = result[1]
+
+    ...
+}
+
+```
+
+
+Don't forget to store the properties into the index as following:
+
+```groovy
+class MyDomainClass {
+
+    [...]
+
+    static search = {
+        author index: 'tokenized', store: 'yes'
+        body index: 'tokenized', store: 'yes'
+    }
+}
+```
+
+
 ### Analysis
 
 #### Define named analyzers
