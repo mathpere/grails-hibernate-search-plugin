@@ -212,11 +212,22 @@ MyDomainClass.search().withTransaction { transaction ->
 
 // index only updated at commit time
 MyDomainClass.search().withTransaction { transaction ->
-   MyDomainClass.findAll().each {
-      it.search().purge()
-   }
+   
+   MyDomainClass.get(3).search().purge()
+   
 }
 ```
+
+To remove all entities of a given type, you could use the following purgeAll method:
+
+```groovy
+
+// index only updated at commit time
+MyDomainClass.search().withTransaction {
+   MyDomainClass.search().purgeAll()
+}
+```
+
 
 ##### Rebuild index on start
 
