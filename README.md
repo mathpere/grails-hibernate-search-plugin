@@ -380,6 +380,21 @@ MyDomainClass.search().list {
 }
 ```
 
+##### Fuzzy search
+
+On fuzzy search, you can add an optional parameter to specify the threshold limit
+
+```groovy
+
+MyDomainClass.search().list {
+
+   keyword "status", Status.DISABLED, [ignoreAnalyzer: true]
+
+   fuzzy "description", "hellow", [ignoreFieldBridge: true, threshold: 0.8f]
+
+}
+```
+
 #### Counting the results
 
 You can also retrieve the number of results by using 'count' method:
