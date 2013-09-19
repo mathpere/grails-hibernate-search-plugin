@@ -365,7 +365,7 @@ def items = Item.search().list {
 ```
 
 
-#### Support for ignoreAnalyzer() or ignoreFieldBridge() functions
+#### Support for ignoreAnalyzer(), ignoreFieldBridge() and boostedTo() functions
 
 When searching for data, you may want to not use the field bridge or the analyzer. All methods (below, above, between, keyword, fuzzy) accept an optional map parameter to support this:
 
@@ -375,7 +375,7 @@ MyDomainClass.search().list {
 
    keyword "status", Status.DISABLED, [ignoreAnalyzer: true]
    
-   wildcard "description", "hellow*", [ignoreFieldBridge: true]
+   wildcard "description", "hellow*", [ignoreFieldBridge: true, boostedTo: 1.5f]
    
 }
 ```

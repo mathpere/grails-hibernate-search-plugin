@@ -67,6 +67,7 @@ class HibernateSearchQueryBuilder {
 
         def ignoreAnalyzer = false
         def ignoreFieldBridge = false
+        def boostedTo
 
         final def leftShift( component ) {
             throw new UnsupportedOperationException( "${this.class.name} is a leaf" )
@@ -78,6 +79,8 @@ class HibernateSearchQueryBuilder {
             if ( ignoreAnalyzer ) { fieldCustomization = fieldCustomization.ignoreAnalyzer() }
 
             if ( ignoreFieldBridge ) { fieldCustomization = fieldCustomization.ignoreFieldBridge() }
+
+            if ( boostedTo ) { fieldCustomization = fieldCustomization.boostedTo( boostedTo ) }
 
             createQuery( fieldCustomization )
         }
