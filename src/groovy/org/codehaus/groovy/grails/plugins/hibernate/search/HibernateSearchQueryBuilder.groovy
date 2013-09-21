@@ -26,6 +26,7 @@ import org.hibernate.search.MassIndexer
 import org.hibernate.search.Search
 import org.hibernate.search.query.dsl.FieldCustomization
 import org.hibernate.search.query.dsl.QueryBuilder
+import org.hibernate.search.query.dsl.FuzzyContext
 
 class HibernateSearchQueryBuilder {
 
@@ -66,6 +67,7 @@ class HibernateSearchQueryBuilder {
 
         def ignoreAnalyzer = false
         def ignoreFieldBridge = false
+        def boostedTo
 
         final def leftShift( component ) {
             throw new UnsupportedOperationException( "${this.class.name} is a leaf" )
@@ -77,6 +79,8 @@ class HibernateSearchQueryBuilder {
             if ( ignoreAnalyzer ) { fieldCustomization = fieldCustomization.ignoreAnalyzer() }
 
             if ( ignoreFieldBridge ) { fieldCustomization = fieldCustomization.ignoreFieldBridge() }
+
+            if ( boostedTo ) { fieldCustomization = fieldCustomization.boostedTo( boostedTo ) }
 
             createQuery( fieldCustomization )
         }
@@ -174,10 +178,14 @@ class HibernateSearchQueryBuilder {
 
     private static class FuzzyComponent extends Leaf {
         def matching
+        def threshold
 
         Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
 
-        FieldCustomization createFieldCustomization( ) { queryBuilder.keyword().fuzzy().onField( field ) }
+        FieldCustomization createFieldCustomization( ) {
+            FuzzyContext context = queryBuilder.keyword().fuzzy()
+            if (threshold) { context.withThreshold( threshold ) }
+            context.onField( field ) }
     }
 
     private static class WildcardComponent extends Leaf {
