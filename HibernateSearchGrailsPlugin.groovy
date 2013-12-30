@@ -9,8 +9,8 @@ import org.springframework.orm.hibernate3.HibernateCallback
 import org.springframework.orm.hibernate3.HibernateTemplate
 
 class HibernateSearchGrailsPlugin {
-    def version = "0.8"
-    def grailsVersion = "2.0 > *"
+    def version = "0.81"
+    def grailsVersion = "2.3.3"
     def loadAfter = ['hibernate']
     def title = "Hibernate Search Plugin"
     def author = "Mathieu Perez, Julie Ingignoli"
@@ -20,7 +20,8 @@ class HibernateSearchGrailsPlugin {
     def license = 'APACHE'
     def organization = [name: 'NovaCodex', url: 'http://www.novacodex.net/']
     def developers = [[name: 'Mathieu Perez', email: 'mathieu.perez@novacodex.net'],
-            [name: 'Julie Ingignoli', email: 'julie.ingignoli@novacodex.net']]
+            [name: 'Julie Ingignoli', email: 'julie.ingignoli@novacodex.net'],
+				[name: 'Jappie Klooster', email: 'jappieklooster@hotmail.com']]
     def issueManagement = [system: 'github', url: 'https://github.com/mathpere/grails-hibernate-search-plugin/issues']
     def scm = [url: 'https://github.com/mathpere/grails-hibernate-search-plugin']
 
