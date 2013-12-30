@@ -7,9 +7,13 @@ target
 *.ipr
 *.iws
 *.swp
+*.swo
 *.log
 */rebel.xml
 */lucene
 lucene
 .idea
 .DS_Store
+web-app
+plugin.xml
+grails-hibernate-search-*.zip
