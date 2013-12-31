@@ -594,7 +594,7 @@ MyDomainClass.search().list {
 
 ## Notes
 
-* This plugin is quite a thin layer between [grails](http://grails.org/) and the official [hibernate-search](http://hibernate.org/search/)
+* This plugin is a thin layer between [grails](http://grails.org/) and [hibernate-search](http://hibernate.org/search/)
 * Aditional documentation can be found [here](http://docs.jboss.org/hibernate/search/4.4/reference/en-US/html/)
 
 ## Bug tracker
