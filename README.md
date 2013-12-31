@@ -4,7 +4,6 @@ This plugin aims to integrate Hibernate Search features to Grails in very few st
 
 ## Quick start
 
-
 ### Installation
 
 ```
@@ -593,6 +592,10 @@ MyDomainClass.search().list {
 }
 ```
 
+## Notes
+
+* This plugin is quite a thin layer between [grails](http://grails.org/) and the official [hibernate-search](http://hibernate.org/search/)
+* Aditional documentation can be found [here](http://docs.jboss.org/hibernate/search/4.4/reference/en-US/html/)
 
 ## Bug tracker
 
