@@ -25,13 +25,11 @@ class HibernateSearchConfig {
 	 */
 	def rebuildIndexOnStart( Closure massIndexerDsl ) {
 
-		if ( log.debugEnabled )
+		if ( log.debugEnabled ){
 			log.debug "Start rebuilding indexes of all indexed entity types..."
-
+		}
 		massIndexer = fullTextSession.createIndexer()
-
 		invokeClosureNode massIndexerDsl
-
 		massIndexer.startAndWait()
 	}
 
@@ -46,12 +44,12 @@ class HibernateSearchConfig {
 	 */
 	def rebuildIndexOnStart( boolean rebuild ) {
 
-		if ( !rebuild )
+		if ( !rebuild ){
 			return
-
-		if ( log.debugEnabled )
+		}
+		if ( log.debugEnabled ){
 			log.debug "Start rebuilding indexes of all indexed entity types..."
-
+		}
 		massIndexer = fullTextSession.createIndexer().startAndWait()
 	}
 
