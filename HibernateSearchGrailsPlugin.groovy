@@ -1,5 +1,3 @@
-package org.codehaus.groovy.grails.plugins.hibernate.search 
-
 import org.codehaus.groovy.grails.commons.ClassPropertyFetcher
 import org.codehaus.groovy.grails.plugins.hibernate.search.HibernateSearchConfig
 import org.codehaus.groovy.grails.plugins.hibernate.search.HibernateSearchQueryBuilder
