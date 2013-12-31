@@ -8,68 +8,69 @@ import org.hibernate.search.Search
 
 class HibernateSearchConfig {
 
-    private final static log = LogFactory.getLog this
+	private final static log = LogFactory.getLog this
 
-    private MassIndexer massIndexer
-    private final FullTextSession fullTextSession
-    private static final List MASS_INDEXER_METHODS = MassIndexer.methods.findAll { it.returnType == MassIndexer }*.name
+	private MassIndexer massIndexer
+	private final FullTextSession fullTextSession
+	private static final List MASS_INDEXER_METHODS = MassIndexer.methods.findAll { it.returnType == MassIndexer }*.name
 
-    HibernateSearchConfig( Session session ) {
-        this.fullTextSession = Search.getFullTextSession( session )
-    }
+	HibernateSearchConfig( Session session ) {
+		this.fullTextSession = Search.getFullTextSession( session )
+	}
 
-    /**
-     *
-     * Rebuild the indexes of all indexed entity types with custom config
-     *
-     */
-    def rebuildIndexOnStart( Closure massIndexerDsl ) {
+	/**
+	 *
+	 * Rebuild the indexes of all indexed entity types with custom config
+	 *
+	 */
+	def rebuildIndexOnStart( Closure massIndexerDsl ) {
 
-        if ( log.debugEnabled )
-            log.debug "Start rebuilding indexes of all indexed entity types..."
+		if ( log.debugEnabled )
+			log.debug "Start rebuilding indexes of all indexed entity types..."
 
-        massIndexer = fullTextSession.createIndexer()
+		massIndexer = fullTextSession.createIndexer()
 
-        invokeClosureNode massIndexerDsl
+		invokeClosureNode massIndexerDsl
 
-        massIndexer.startAndWait()
-    }
+		massIndexer.startAndWait()
+	}
 
-    /**
-     *
-     * Rebuild the indexes of all indexed entity types with default options:
-     * - CacheMode.IGNORE
-     * - purgeAllOnStart = true
-     * - optimizeAfterPurge = true
-     * - optimizeOnFinish = true
-     *
-     */
-    def rebuildIndexOnStart( boolean rebuild ) {
+	/**
+	 *
+	 * Rebuild the indexes of all indexed entity types with default options:
+	 * - CacheMode.IGNORE
+	 * - purgeAllOnStart = true
+	 * - optimizeAfterPurge = true
+	 * - optimizeOnFinish = true
+	 *
+	 */
+	def rebuildIndexOnStart( boolean rebuild ) {
 
-        if ( !rebuild )
-            return
+		if ( !rebuild )
+			return
 
-        if ( log.debugEnabled )
-            log.debug "Start rebuilding indexes of all indexed entity types..."
+		if ( log.debugEnabled )
+			log.debug "Start rebuilding indexes of all indexed entity types..."
 
-        massIndexer = fullTextSession.createIndexer().startAndWait()
-    }
+		massIndexer = fullTextSession.createIndexer().startAndWait()
+	}
 
-    Object invokeMethod( String name, Object args ) {
-        if ( name in MASS_INDEXER_METHODS ) {
-            massIndexer = massIndexer.invokeMethod name, args
-        }
+	Object invokeMethod( String name, Object args ) {
+		if ( name in MASS_INDEXER_METHODS ) {
+			massIndexer = massIndexer.invokeMethod name, args
+		}
 
-        // makes it possible to ignore not concerned config
-    }
+		// makes it possible to ignore not concerned config
+	}
 
-    def invokeClosureNode( Closure callable ) {
-        if ( !callable )
-            return
+	def invokeClosureNode( Closure callable ) {
+		if ( !callable ){
+			return
+		}
 
-        callable.delegate = this
-        callable.resolveStrategy = Closure.DELEGATE_FIRST
-        callable.call()
-    }
+		callable.delegate = this
+		callable.resolveStrategy = Closure.DELEGATE_FIRST
+		callable.call()
+	}
 
 }

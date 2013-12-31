@@ -54,15 +54,8 @@ class HibernateSearchGrailsPlugin {
 		}
 
 		// config
-		def hibernateSearchConfig = application.config.grails.plugins.hibernatesearch
-
-		if ( hibernateSearchConfig && hibernateSearchConfig instanceof Closure ) {
-
-			hibernateSearchConfig.delegate = new HibernateSearchConfig( hiberTextSes )
-			hibernateSearchConfig.resolveStrategy = Closure.DELEGATE_FIRST
-			hibernateSearchConfig.call()
-
-		}
+		def userConfig = application.config.grails.plugins.hibernatesearch
+		new HibernateSearchConfig(hiberTextSes).invokeClosureNode(userConfig)
 
 	}
 }
