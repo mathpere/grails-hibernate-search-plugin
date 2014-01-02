@@ -33,25 +33,32 @@ class HibernateSearchGrailsPlugin {
 
 	def doWithDynamicMethods = { ctx ->
 
+		// get the hibernate session (this used to be a pain in hibernate 3, which caused some confusing code)
 		Session hiberTextSes = Search.getFullTextSession(
 				ctx.sessionFactory.currentSession
 		) 
 
-		// add search() method to indexed domain classes:
+		// add methods to the domain
 		application.domainClasses.each { grailsClass ->
 			def clazz = grailsClass.clazz
 
-			if ( ClassPropertyFetcher.forClass( clazz ).getStaticPropertyValue( "search", Closure ) || AnnotationUtils.isAnnotationDeclaredLocally( Indexed, clazz ) ) {
-					
+			if (
+				ClassPropertyFetcher.forClass( clazz ).getStaticPropertyValue( "search", Closure ) ||
+				AnnotationUtils.isAnnotationDeclaredLocally( Indexed, clazz )
+			) {
+									
+				// add search() method to indexed domain classes:
 				grailsClass.metaClass.static.search = {
 					new HibernateSearchQueryBuilder(clazz, hiberTextSes)
 				}
-
+				
+				// add search() method to indexed domain instances:
 				grailsClass.metaClass.search = {
 					new HibernateSearchQueryBuilder(clazz, delegate, hiberTextSes)
 				}
 			}
 		}
+
 		// load config and execute
 		new HibernateSearchConfig(hiberTextSes).invokeClosureNode(
 			application.config.grails.plugins.hibernatesearch
