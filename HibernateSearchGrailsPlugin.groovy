@@ -2,7 +2,7 @@ import org.codehaus.groovy.grails.commons.ClassPropertyFetcher
 import org.codehaus.groovy.grails.plugins.hibernate.search.HibernateSearchConfig
 import org.codehaus.groovy.grails.plugins.hibernate.search.HibernateSearchQueryBuilder
 import org.codehaus.groovy.grails.plugins.hibernate.search.SearchMappingConfigurableLocalSessionFactoryBean
-import org.hibernate.Session
+import org.hibernate.*
 import org.hibernate.search.annotations.Indexed
 import org.hibernate.search.Search
 import org.springframework.core.annotation.AnnotationUtils
@@ -52,10 +52,10 @@ class HibernateSearchGrailsPlugin {
 				}
 			}
 		}
-
-		// config
-		def userConfig = application.config.grails.plugins.hibernatesearch
-		new HibernateSearchConfig(hiberTextSes).invokeClosureNode(userConfig)
+		// load config and execute
+		new HibernateSearchConfig(hiberTextSes).invokeClosureNode(
+			application.config.grails.plugins.hibernatesearch
+		)
 
 	}
 }

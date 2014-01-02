@@ -18,7 +18,7 @@ grails.project.dependency.resolution = {
     }
 
     dependencies {
-        compile('org.hibernate:hibernate-search:4.4.2.Final') {
+        compile('org.hibernate:hibernate-search:4.1.1.Final') {
             excludes "hibernate-core"
         }
     }

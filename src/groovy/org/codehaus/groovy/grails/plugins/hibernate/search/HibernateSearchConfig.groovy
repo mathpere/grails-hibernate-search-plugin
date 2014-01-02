@@ -68,7 +68,7 @@ class HibernateSearchConfig {
 
 		callable.delegate = this
 		callable.resolveStrategy = Closure.DELEGATE_FIRST
-		callable.call()
+		callable()
 	}
 
 }
