@@ -89,7 +89,6 @@ class HibernateSearchQueryBuilder {
 
 		abstract FieldCustomization createFieldCustomization( )
 	}
-	
 	private static class MustNotComponent extends Composite {
 		Query createQuery( ) {
 			if ( children ) {
