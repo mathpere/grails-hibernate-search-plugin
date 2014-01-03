@@ -10,7 +10,7 @@ import org.hibernate.search.bridge.ParameterizedBridge
 */
 abstract class AbstractGrailsDomainBridge implements TwoWayStringBridge, ParameterizedBridge{
 
-	static final String STR_TO_OBJ_TYPE = "class"
+	public static final String STR_TO_OBJ_TYPE = 'classname'
 	private Class grailsDomain
 	void setParameterValues(Map<String,String> parameters) {
 		grailsDomain = ApplicationHolder.application.getClassForName(
