@@ -81,9 +81,10 @@ class MyDomainClass {
     }
 
     static hasMany = [categories: Category, items: Item]
-
+	 // BUG: with hibernate search 4 static marked classes are not considered indexed,
+	 // this can easaly be resolved in the loader method but I don't use this method so I did not bother
     static search = {
-        // the tokenized property is no longer used in hibernate search 4.x
+        // BUG: the tokenized property is no longer used in hibernate search 4.x
         // I would update this code but I don't use it, if you prefer this method over anotations
         // please be awere that how it is stated below will not work I don't know how flexible this is
         // but for Ease I would use anotations, (see below)
