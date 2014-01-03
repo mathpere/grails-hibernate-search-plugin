@@ -119,6 +119,8 @@ import org.hibernate.search.annotations.Index
 import org.hibernate.search.annotations.Field
 
 @Indexed
+// for more info on bridges [here](http://docs.jboss.org/hibernate/search/4.1/reference/en-US/html/search-mapping.html#search-mapping-bridge) 
+// (a bridge translates objects to searchable strings)
 @ClassBridge(
      impl = MyClassBridge,
      params = @Parameter( name="myParam", value="4" ) )
