@@ -12,6 +12,8 @@ abstract class AbstractGrailsDomainBridge implements TwoWayStringBridge, Paramet
 
 	public static final String STR_TO_OBJ_TYPE = 'classname'
 	private Class grailsDomain
+
+	@Override
 	void setParameterValues(Map<String,String> parameters) {
 		grailsDomain = ApplicationHolder.application.getClassForName(
 			parameters.get(STR_TO_OBJ_TYPE)
