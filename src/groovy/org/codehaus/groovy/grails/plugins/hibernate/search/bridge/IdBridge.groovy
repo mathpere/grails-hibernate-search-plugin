@@ -4,7 +4,7 @@ package org.codehaus.groovy.grails.plugins.hibernate.search.bridge
 * allows bridging trough grails domain id's
 * For easy indexing
 */
-class IdBridge extends AbstractGrailsDomainBridge{
+class IdBridge<Domain> extends AbstractGrailsDomainBridge<Domain>{
 
 	@Override
 	String objectToString(Object object) {

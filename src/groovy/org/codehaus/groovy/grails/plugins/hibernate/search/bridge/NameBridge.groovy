@@ -5,7 +5,7 @@ package org.codehaus.groovy.grails.plugins.hibernate.search.bridge
 	it also asumes it can search on its given parameter like a grails
 	domain class to allow for the string to object conversion
 */
-class NameBridge extends AbstractGrailsDomainBridge{
+class NameBridge<Domain> extends AbstractGrailsDomainBridge<Domain>{
 	
 	@Override
 	String objectToString(Object object) {
