@@ -77,7 +77,10 @@ class HibernateSearchQueryBuilder {
 	}
 
 	private FullTextQuery createFullTextQuery( ) {
-		def query = fullTextSession.createFullTextQuery( root.createQuery(), clazz )
+		def query = fullTextSession.createFullTextQuery(
+			root.createQuery(),
+			clazz
+		)
 
 		filterDefinitions?.each { filterName, filterParams ->
 
@@ -105,6 +108,22 @@ class HibernateSearchQueryBuilder {
 		currentNode = root
 	}
 
+	Object invokeMethod( String name, Object args ) {
+		if ( name in MASS_INDEXER_METHODS ) {
+			massIndexer = massIndexer.invokeMethod name, args
+		} else {
+			throw new MissingMethodException( name, getClass(), args )
+		}
+	}
+
+	def invokeClosureNode( Closure callable ) {
+		if ( !callable )
+			return
+
+		callable.delegate = this
+		callable.resolveStrategy = Closure.DELEGATE_FIRST
+		callable.call()
+	}
 	/**
 	 *
 	 * @param searchDsl
@@ -322,20 +341,4 @@ class HibernateSearchQueryBuilder {
 		addLeaf new PhraseComponent( [queryBuilder: queryBuilder, field: field, sentence: sentence] + optionalParams )
 	}
 
-	Object invokeMethod( String name, Object args ) {
-		if ( name in MASS_INDEXER_METHODS ) {
-			massIndexer = massIndexer.invokeMethod name, args
-		} else {
-			throw new MissingMethodException( name, getClass(), args )
-		}
-	}
-
-	def invokeClosureNode( Closure callable ) {
-		if ( !callable )
-			return
-
-		callable.delegate = this
-		callable.resolveStrategy = Closure.DELEGATE_FIRST
-		callable.call()
-	}
 }
