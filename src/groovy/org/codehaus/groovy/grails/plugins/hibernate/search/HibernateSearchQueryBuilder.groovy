@@ -15,7 +15,6 @@
 package org.codehaus.groovy.grails.plugins.hibernate.search
 
 import org.apache.lucene.search.Filter
-import org.apache.lucene.search.Query
 import org.apache.lucene.search.Sort
 import org.apache.lucene.search.SortField
 import org.grails.datastore.mapping.reflect.ClassPropertyFetcher
@@ -24,9 +23,8 @@ import org.hibernate.search.FullTextQuery
 import org.hibernate.search.FullTextSession
 import org.hibernate.search.MassIndexer
 import org.hibernate.search.Search
-import org.hibernate.search.query.dsl.FieldCustomization
 import org.hibernate.search.query.dsl.QueryBuilder
-import org.hibernate.search.query.dsl.FuzzyContext
+import org.codehaus.groovy.grails.plugins.hibernate.search.components.*
 
 class HibernateSearchQueryBuilder {
 
@@ -40,168 +38,6 @@ class HibernateSearchQueryBuilder {
 			// see Emmanuel Bernard's comment
 			// https://hibernate.onjira.com/browse/HSEARCH-97
 			( Date ): SortField.STRING]
-
-	private static interface Component {
-		Query createQuery( )
-	}
-
-	private static abstract class Composite implements Component {
-
-		QueryBuilder queryBuilder
-		def parent
-		def children = []
-
-		def leftShift( component ) {
-			assert component instanceof Component: "'component' should be an instance of Component"
-			component.parent = this
-			children << component
-		}
-
-		def toString( indent ) {
-			[( "-" * indent ) + this.class.simpleName, children.collect { it.toString( indent + 1 ) }].flatten().findAll {it}.join( "\n" )
-		}
-	}
-
-	private static abstract class Leaf extends Composite {
-		def field
-
-		def ignoreAnalyzer = false
-		def ignoreFieldBridge = false
-		def boostedTo
-
-		final def leftShift( component ) {
-			throw new UnsupportedOperationException( "${this.class.name} is a leaf" )
-		}
-
-		final Query createQuery( ) {
-			def fieldCustomization = createFieldCustomization()
-
-			if ( ignoreAnalyzer ) { fieldCustomization = fieldCustomization.ignoreAnalyzer() }
-
-			if ( ignoreFieldBridge ) { fieldCustomization = fieldCustomization.ignoreFieldBridge() }
-
-			if ( boostedTo ) { fieldCustomization = fieldCustomization.boostedTo( boostedTo ) }
-
-			createQuery( fieldCustomization )
-		}
-
-		abstract Query createQuery( FieldCustomization fieldCustomization )
-
-		abstract FieldCustomization createFieldCustomization( )
-	}
-	private static class MustNotComponent extends Composite {
-		Query createQuery( ) {
-			if ( children ) {
-
-				def query = queryBuilder.bool()
-
-				children*.createQuery().each {
-					query = query.must( it ).not()
-				}
-
-				query.createQuery()
-
-			} else {
-				queryBuilder.all().createQuery()
-			}
-		}
-	}
-	private static class MustComponent extends Composite {
-		Query createQuery( ) {
-			if ( children ) {
-
-				def query = queryBuilder.bool()
-
-				children*.createQuery().each {
-					query = query.must( it )
-				}
-
-				query.createQuery()
-
-			} else {
-				queryBuilder.all().createQuery()
-			}
-		}
-	}
-
-	private static class ShouldComponent extends Composite {
-		Query createQuery( ) {
-			if ( children ) {
-
-				def query = queryBuilder.bool()
-
-				children*.createQuery().each {
-					query = query.should( it )
-				}
-
-				query.createQuery()
-
-			} else {
-				queryBuilder.all().createQuery()
-			}
-		}
-	}
-
-	private static class BelowComponent extends Leaf {
-		def below
-
-		Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.below( below ).createQuery() }
-
-		FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
-	}
-
-	private static class AboveComponent extends Leaf {
-		def above
-
-		Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.above( above ).createQuery() }
-
-		FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
-	}
-
-	private static class KeywordComponent extends Leaf {
-		def matching
-
-		Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
-
-		FieldCustomization createFieldCustomization( ) { queryBuilder.keyword().onField( field ) }
-	}
-
-	private static class BetweenComponent extends Leaf {
-		def from
-		def to
-
-		Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.from( from ).to( to ).createQuery() }
-
-		FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
-	}
-
-	private static class FuzzyComponent extends Leaf {
-		def matching
-		def threshold
-
-		Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
-
-		FieldCustomization createFieldCustomization( ) {
-			FuzzyContext context = queryBuilder.keyword().fuzzy()
-			if (threshold) { context.withThreshold( threshold ) }
-			context.onField( field ) }
-	}
-
-	private static class WildcardComponent extends Leaf {
-		def matching
-
-		Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
-
-		FieldCustomization createFieldCustomization( ) { queryBuilder.keyword().wildcard().onField( field ) }
-	}
-
-	private static class PhraseComponent extends Leaf {
-		def sentence
-
-		Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.sentence( sentence ).createQuery() }
-
-		FieldCustomization createFieldCustomization( ) { queryBuilder.phrase().onField( field ) }
-	}
 
 	private static final String ASC = 'asc'
 	private static final String DESC = 'desc'
