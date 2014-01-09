@@ -2,8 +2,12 @@
 
 This plugin aims to integrate Hibernate Search features to Grails in very few steps.
 
-## Quick start
+## Notes
 
+* This plugin is a thin layer between [grails](http://grails.org/) and [hibernate-search](http://hibernate.org/search/)
+* Aditional documentation can be found [here](http://docs.jboss.org/hibernate/search/4.1/reference/en-US/html/)
+
+## Quick start
 
 ### Installation
 
@@ -57,6 +61,7 @@ You can also define the path to your indexes with JNDI configuration as followin
 
 #### Mark your domain classes as indexable
 
+
 Add a static search closure as following:
 
 ```groovy
@@ -76,9 +81,13 @@ class MyDomainClass {
     }
 
     static hasMany = [categories: Category, items: Item]
-
+	 // BUG: with hibernate search 4 static marked classes are not considered indexed,
+	 // this can easaly be resolved in the loader method but I don't use this method so I did not bother
     static search = {
-        // fields
+        // BUG: the tokenized property is no longer used in hibernate search 4.x
+        // I would update this code but I don't use it, if you prefer this method over anotations
+        // please be awere that how it is stated below will not work I don't know how flexible this is
+        // but for Ease I would use anotations, (see below)
         author index: 'tokenized'
         body index: 'tokenized'
         publishedDate date: 'day'
@@ -99,10 +108,19 @@ class MyDomainClass {
 
 This static property indicates which fields should be indexed and describes how the field has to be indexed.
 
-Also, the plugin lets you to mark your domain classes as indexable with the Hibernate Search annotations.
+Also, the plugin lets you to mark your domain classes as indexable with the [Hibernate Search annotations](http://docs.jboss.org/hibernate/search/4.1/reference/en-US/html/search-mapping.html#search-mapping-entity).
 
 ```groovy
+
+import org.hibernate.search.annotations.DocumentId
+import org.hibernate.search.annotations.Indexed
+import org.hibernate.search.annotations.Analyze
+import org.hibernate.search.annotations.Store
+import org.hibernate.search.annotations.Index
+import org.hibernate.search.annotations.Field
+
 @Indexed
+// a bridge translates objects to searchable strings
 @ClassBridge(
      impl = MyClassBridge,
      params = @Parameter( name="myParam", value="4" ) )
@@ -112,30 +130,31 @@ class MyDomainClass {
     @DocumentId
     Long id
 
-    @Field(index=Index.TOKENIZED)
+	 // marks it by default as: @Field(index=Index.YES, analyze=Analyze.YES, store=Store.NO)
+    @Field
     String author
     
-    @Field(index=Index.TOKENIZED)
+    @Field
     String body
     
     @Field
     @DateBridge(resolution=Resolution.DAY)
     Date publishedDate
     
-    @Field(index=Index.TOKENIZED)
+    @Field
     String summary
     
-    @Field(index=Index.TOKENIZED)
+    @Field
     String title
     
-    @Field(index=Index.UN_TOKENIZED)
+    @Field(index=Index.NO, analyze=Analyze.NO)
     Status status
     
     @Field 
     @NumericField( precisionStep = 2)
     Double price
     
-    @Field(index=Index.UN_TOKENIZED)
+    @Field(index=Index.YES, analyze=Analyze.NO)
     @FieldBridge(impl = PaddedIntegerBridge.class, params = @Parameter(name="padding", value="10"))
     Integer someInteger
 
@@ -153,6 +172,8 @@ class MyDomainClass {
 
 }
 ```
+
+for more info on bridges [here](http://docs.jboss.org/hibernate/search/4.1/reference/en-US/html/search-mapping.html#search-mapping-bridge)
 
 #### Create index for existing data
 
@@ -592,7 +613,6 @@ MyDomainClass.search().list {
   ...
 }
 ```
-
 
 ## Bug tracker
 

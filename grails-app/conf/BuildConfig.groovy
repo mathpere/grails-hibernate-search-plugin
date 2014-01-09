@@ -14,19 +14,19 @@ grails.project.dependency.resolution = {
         grailsCentral()
 
         mavenCentral()
-        mavenRepo "http://repository.codehaus.org"
+        mavenRepo "https://repository.jboss.org"
     }
 
     dependencies {
-        compile('org.hibernate:hibernate-search:3.4.1.Final') {
+        compile('org.hibernate:hibernate-search:4.1.1.Final') {
             excludes "hibernate-core"
         }
     }
 
     plugins {
-        compile ":hibernate:$grailsVersion"
+        compile ":hibernate4:4.1.11.2"
 
-        build(":tomcat:$grailsVersion") {
+        build(":tomcat:7.0.42") {
             export = false
         }
 
