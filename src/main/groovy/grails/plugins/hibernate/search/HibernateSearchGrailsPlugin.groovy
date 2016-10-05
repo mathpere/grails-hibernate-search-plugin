@@ -41,9 +41,18 @@ class HibernateSearchGrailsPlugin extends Plugin {
 			
 			ApplicationContext applicationContext = grailsApplication.getMainContext();
 			
-			sessionFactory( HibernateSearchCapableSessionFactoryBean, grailsApplication, grailsApplication.domainClasses, ref('entityInterceptor'), ref('hibernateProperties'), ref('hibernateEventListeners') , 
-				 ref('grailsDomainClassMappingContext'), ref('dataSource') ) {
+			sessionFactory( 
+				HibernateSearchCapableSessionFactoryBean, 
+				grailsApplication, 
+				grailsApplication.domainClasses, 
+				ref('entityInterceptor'), 
+				ref('hibernateProperties'), 
+				ref('hibernateEventListeners'),
+				ref('eventTriggeringInterceptor'), 
+				ref('grailsDomainClassMappingContext'), 
+				ref('dataSource') ) {
 				bean -> 
+				
 				log.info "HibernateSearchCapableSessionFactoryBean initialized"
 			}
 		}
@@ -62,11 +71,6 @@ class HibernateSearchGrailsPlugin extends Plugin {
 				log.info "* " + clazz.getSimpleName() + " is indexed"
 				grailsClass.metaClass.static.search = {
 					
-					def hibernateDatastore = applicationContext.hibernateDatastore
-					def maybe = hibernateDatastore.getSessionFactory();
-				
-					log.info "\n\n\n\n\n\n ==> *^^^^^^^^^^^^ " + applicationContext.sessionFactory?.getClass() + "\n" + maybe.getClass() + " \n\n\n"
-						
 					new HibernateSearchQueryBuilder( clazz, applicationContext.sessionFactory.getCurrentSession() )
 				}
 

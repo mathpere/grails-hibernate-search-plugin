@@ -6,6 +6,7 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import org.grails.orm.hibernate.HibernateEventListeners;
 import org.grails.orm.hibernate.HibernateMappingContextSessionFactoryBean;
 import org.grails.orm.hibernate.cfg.HibernateMappingContext;
 import org.grails.orm.hibernate.cfg.Mapping;
+import org.grails.orm.hibernate.support.ClosureEventTriggeringInterceptor;
 import org.hibernate.Interceptor;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -49,8 +51,9 @@ public class HibernateSearchCapableSessionFactoryBean extends HibernateMappingCo
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public HibernateSearchCapableSessionFactoryBean(GrailsApplication grailsApplication,
 			List<GrailsDomainClass> domainClasses, Interceptor entityInterceptor, Properties hibernateProperties,
-			HibernateEventListeners hibernateEventListeners, HibernateMappingContext hibernateMappingContext,
-			DataSource dataSource) {
+			HibernateEventListeners hibernateEventListeners,
+			ClosureEventTriggeringInterceptor eventTriggeringInterceptor,
+			HibernateMappingContext hibernateMappingContext, DataSource dataSource) {
 
 		this.grailsApplication = grailsApplication;
 		this.domainClasses = domainClasses;
@@ -101,6 +104,20 @@ public class HibernateSearchCapableSessionFactoryBean extends HibernateMappingCo
 			e.printStackTrace();
 			log.error("cannot set sessionFactory config class - please report or PR", e);
 		}
+
+		Map<String, Object> eventListeners = new HashMap<>();
+		eventListeners.put("save", eventTriggeringInterceptor);
+		eventListeners.put("save-update", eventTriggeringInterceptor);
+		eventListeners.put("pre-load", eventTriggeringInterceptor);
+		eventListeners.put("post-load", eventTriggeringInterceptor);
+		eventListeners.put("pre-insert", eventTriggeringInterceptor);
+		eventListeners.put("post-insert", eventTriggeringInterceptor);
+		eventListeners.put("pre-update", eventTriggeringInterceptor);
+		eventListeners.put("post-update", eventTriggeringInterceptor);
+		eventListeners.put("pre-delete", eventTriggeringInterceptor);
+		eventListeners.put("post-delete", eventTriggeringInterceptor);
+
+		setEventListeners(eventListeners);
 	}
 
 	@Override
@@ -186,7 +203,12 @@ public class HibernateSearchCapableSessionFactoryBean extends HibernateMappingCo
 			log.error("Error while indexing entities", e);
 		}
 
-		return super.doBuildSessionFactory();
+		try {
+			return super.doBuildSessionFactory();
+		} catch (Exception e) {
+			log.error("cannot build session factory", e);
+			throw e;
+		}
 	}
 
 }
