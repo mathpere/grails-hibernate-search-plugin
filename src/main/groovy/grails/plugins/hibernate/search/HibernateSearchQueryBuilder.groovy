@@ -19,18 +19,24 @@ import org.apache.lucene.search.Query
 import org.apache.lucene.search.Sort
 import org.apache.lucene.search.SortField
 import org.grails.datastore.mapping.reflect.ClassPropertyFetcher
+import org.hibernate.Criteria;
 import org.hibernate.Session
+import org.hibernate.criterion.Restrictions;
 import org.hibernate.search.FullTextQuery
 import org.hibernate.search.FullTextSession
 import org.hibernate.search.MassIndexer
 import org.hibernate.search.Search
 import org.hibernate.search.query.dsl.FieldCustomization
 import org.hibernate.search.query.dsl.QueryBuilder
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.hibernate.search.query.dsl.FuzzyContext
 
 import grails.plugins.*;
 
 class HibernateSearchQueryBuilder {
+	
+	private final static Logger log = LoggerFactory.getLogger(this)
 
     private static final def SORT_TYPES = [( Integer ): SortField.Type.INT,
             ( Double ): SortField.Type.DOUBLE,
@@ -181,12 +187,14 @@ class HibernateSearchQueryBuilder {
     private static class FuzzyComponent extends Leaf {
         def matching
         def threshold
+		def prefixLength
 
         Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
 
         FieldCustomization createFieldCustomization( ) {
             FuzzyContext context = queryBuilder.keyword().fuzzy()
             if (threshold) { context.withThreshold( threshold ) }
+			if (prefixLength) { context.withPrefixLength( prefixLength ) }
             context.onField( field ) }
     }
 
@@ -226,7 +234,8 @@ class HibernateSearchQueryBuilder {
     private def offset = 0
     private def filterDefinitions = [:]
     private def projection = []
-
+	private def criteria
+	
     private def root
     private def currentNode
 
@@ -258,7 +267,14 @@ class HibernateSearchQueryBuilder {
         if ( filter ) {
             query.filter = filter
         }
-
+		
+		if ( criteria ) {
+			
+			log.info "add criteria query: " + criteria
+			
+			query.setCriteriaQuery(criteria);
+		}
+		
         if ( projection ) {
             query.setProjection projection as String[]
         }
@@ -363,6 +379,16 @@ class HibernateSearchQueryBuilder {
     def projection( String... projection ) {
         this.projection.addAll( projection )
     }
+	
+	def criteria( Closure criteria ) {
+		this.criteria = fullTextSession.createCriteria( clazz );
+		
+		criteria.delegate = this.criteria
+		criteria.resolveStrategy = Closure.DELEGATE_FIRST
+		this.criteria = criteria.call()
+		
+		log.debug "setting criteria: " + this.criteria
+	}
 
     def sort( String field, String order = ASC, type = null ) {
 

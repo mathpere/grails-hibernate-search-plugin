@@ -152,8 +152,6 @@ class MyDomainClass {
 }
 ```
 
-# THE DOCUMENTATION BELOW NEEDS ADDITIONNAL REVIEW
-
 #### Create index for existing data
 
 The plugin lets you to create index of any indexed entity as following:
@@ -318,6 +316,21 @@ class SomeController {
       [myDomainClasses: myDomainClasses]
    }
 }
+```
+
+#### Mixing with criteria query
+
+Criteria criteria = fullTextSession.createCriteria( clazz ).createAlias("session", "session").add(Restrictions.eq("session.id", 115L));
+
+```groovy
+  def myDomainClasses = MyDomainClass.search().list {
+    
+    criteria {
+       setFetchMode("authors", FetchMode.JOIN)
+    }
+    
+    fuzzy "description", "mi search"
+  }
 ```
 
 #### Sorting the results
