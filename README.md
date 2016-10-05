@@ -624,6 +624,9 @@ https://github.com/mathpere/grails-hibernate-search-plugin/issues
 
 + http://twitter.com/ZeJulie
 
+**Louis Grignon**
+
++ https://github.com/lgrignon
 
 ## License
 
