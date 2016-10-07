@@ -92,8 +92,38 @@ grailsPublish {
 	portalPassword = ""
 }
 
+
+publishing {
+	repositories {
+		maven {
+			credentials {
+				username "$hibernateSearchMavenUser"
+				password "$hibernateSearchMavenPassword"
+			}
+			url "$hibernateSearchMavenRepoUrl/libs-release-local"
+		}
+	}
+	publications {
+		maven(MavenPublication) {
+			groupId 'org.grails.plugins'
+			artifactId 'hibernate-search'
+
+			pom.withXml {
+				asNode().appendNode('description',
+						'Grails 3 plugin for Hibernate Search')
+			}
+
+			from components.java
+
+			artifact sourceJar { classifier "sources" }
+		}
+	}
+}
+
 assets { packagePlugin = true }
 
 task dumpDependencies << {
 	configurations.compile.each { println it }
+	
+	
 }
