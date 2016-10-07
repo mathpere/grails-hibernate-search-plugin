@@ -104,13 +104,26 @@ publishing {
 		}
 	}
 	publications {
-		mavenJava(MavenPublication) {
+		mavenJar(MavenPublication) {
 			groupId 'org.grails.plugins'
 			artifactId 'hibernate-search'
 
 			pom.withXml {
-				asNode().appendNode('description',
-						'Grails 3 plugin for Hibernate Search')
+				def pomNode = asNode()
+				
+				pomNode.appendNode('description',
+					'Grails 3 plugin for Hibernate Search')
+				
+				pomNode.dependencyManagement.replaceNode {}
+
+				// simply remove dependencies without a version
+				// version-less dependencies are handled with dependencyManagement
+				// see https://github.com/spring-gradle-plugins/dependency-management-plugin/issues/8 for more complete solutions
+				pomNode.dependencies.dependency.findAll {
+					it.version.text().isEmpty()
+				}.each {
+					it.replaceNode {}
+				}
 			}
 
 			from components.java
