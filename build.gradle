@@ -104,7 +104,7 @@ publishing {
 		}
 	}
 	publications {
-		maven(MavenPublication) {
+		mavenJava(MavenPublication) {
 			groupId 'org.grails.plugins'
 			artifactId 'hibernate-search'
 
@@ -114,8 +114,6 @@ publishing {
 			}
 
 			from components.java
-
-			artifact sourceJar { classifier "sources" }
 		}
 	}
 }
@@ -124,6 +122,4 @@ assets { packagePlugin = true }
 
 task dumpDependencies << {
 	configurations.compile.each { println it }
-	
-	
 }
