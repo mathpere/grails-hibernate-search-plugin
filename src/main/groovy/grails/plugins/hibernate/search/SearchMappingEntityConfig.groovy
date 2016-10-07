@@ -63,10 +63,14 @@ class SearchMappingEntityConfig {
 
             if ( args.indexEmbedded instanceof Map ) {
                 def depth = args.indexEmbedded["depth"]
-
                 if ( depth ) {
                     searchMapping = searchMapping.depth( depth )
                 }
+				
+				def includeEmbeddedObjectId = args.indexEmbedded["includeEmbeddedObjectId"]
+				if ( includeEmbeddedObjectId ) {
+					searchMapping = searchMapping.includeEmbeddedObjectId(includeEmbeddedObjectId)
+				}
             }
         } else if ( args.containedIn ) {
 

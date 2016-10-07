@@ -231,7 +231,7 @@ MyDomainClass.search().withTransaction {
 
 Hibernate Search offers an option to rebuild the whole index using the MassIndexer API. This plugin provides a configuration which lets you to rebuild automatically your indexes on startup.
 
-To use the default options of the MassIndexer API, simply provide this option into your Config.groovy:
+To use the default options of the MassIndexer API, simply provide this option into your application.groovy:
 
 ```groovy
 
@@ -460,7 +460,7 @@ class MyDomainClass {
 
 #### Define named analyzers
 
-Named analyzers are global and can be defined within Config.groovy as following:
+Named analyzers are global and can be defined within application.groovy as following:
 
 ```groovy
 
@@ -548,7 +548,7 @@ def parser = new org.apache.lucene.queryParser.QueryParser (
 
 #### Define named filters
 
-Named filters are global and can be defined within Config.groovy as following:
+Named filters are global and can be defined within application.groovy as following:
 
 ```groovy
 
@@ -596,7 +596,7 @@ MyDomainClass.search().list {
 ```
 
 
-If you don't want to define named filter within Config.groovy, you can also filter results as following:
+If you don't want to define named filter within application.groovy, you can also filter results as following:
 
 ```groovy
 MyDomainClass.search().list {
