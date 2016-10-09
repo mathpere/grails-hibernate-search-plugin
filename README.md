@@ -4,11 +4,10 @@ This plugin aims to integrate Hibernate Search features to Grails in very few st
 
 ## Quick start
 
-
-### Installation
+Add the following to your dependencies
 
 ```
-  grails install-plugin hibernate-search
+  compile("org.grails.plugins:hibernate-search:2.0")
 ```
 
 ### Configuration
@@ -16,41 +15,40 @@ This plugin aims to integrate Hibernate Search features to Grails in very few st
 By default, the plugin stores your indexes in this directory:
 
 ```
- ~/.grails/${grails.version}/projects/${yourProjectName}/lucene-index/development/
+ ~/.grails/${grailsVersion}/projects/${yourProjectName}/lucene-index/development/
 ```
 
-You can override this configuration in your Datasource.groovy
+You can override this configuration in your application.yml
 
-```groovy
- hibernate {
- 
-    // default Grails configuration:
-    cache.use_second_level_cache = true
-    cache.use_query_cache = true
-    cache.provider_class = 'net.sf.ehcache.hibernate.EhCacheProvider'
-
-    // hibernate search configuration:
-    search.default.directory_provider = 'filesystem'
-    search.default.indexBase = '/path/to/your/indexes'
-
-}
+```yml
+hibernate:
+    cache:
+        use_second_level_cache: true
+        use_query_cache: true
+        provider_class: net.sf.ehcache.hibernate.EhCacheProvider
+        region:
+            factory_class: org.hibernate.cache.ehcache.SingletonEhCacheRegionFactory
+    search:
+        default:
+        	indexBase: '/path/to/your/indexes'
+            indexmanager: near-real-time
+            directory_provider: filesystem
 ```
 
 You can also define the path to your indexes with JNDI configuration as following:
 
-```groovy
- hibernate {
- 
-    // default Grails configuration:
-    cache.use_second_level_cache = true
-    cache.use_query_cache = true
-    cache.provider_class = 'net.sf.ehcache.hibernate.EhCacheProvider'
-
-    // hibernate search configuration:
-    search.default.directory_provider = 'filesystem'
-    search.default.indexBaseJndiName = 'java:comp/env/luceneIndexBase'
-
-}
+```yml
+hibernate:
+    cache:
+        use_second_level_cache: true
+        use_query_cache: true
+        provider_class: net.sf.ehcache.hibernate.EhCacheProvider
+        region:
+            factory_class: org.hibernate.cache.ehcache.SingletonEhCacheRegionFactory
+    search:
+        default:
+            indexBaseJndiName: 'java:comp/env/luceneIndexBase'
+            directory_provider: filesystem
 ```
 
 ###  Indexing
@@ -79,16 +77,16 @@ class MyDomainClass {
 
     static search = {
         // fields
-        author index: 'tokenized'
-        body index: 'tokenized'
+        author index: 'yes'
+        body termVector: 'with_positions'
         publishedDate date: 'day'
-        summary index: 'tokenized'
-        title index: 'tokenized'
-        status index: 'un_tokenized'
+        summary boost: 5.9
+        title index: 'yes'
+        status index: 'yes'
         categories indexEmbedded: true
         items indexEmbedded: [depth: 2] // configure the depth indexing
-        price numeric: 2
-        someInteger index: 'un_tokenized', bridge: ['class': PaddedIntegerBridge, params: ['padding': 10]]
+        price numeric: 2, analyze: false
+        someInteger index: 'yes', bridge: ['class': PaddedIntegerBridge, params: ['padding': 10]]
 
         // support for classBridge
         classBridge = ['class': MyClassBridge, params: [myParam: "4"]]
@@ -233,7 +231,7 @@ MyDomainClass.search().withTransaction {
 
 Hibernate Search offers an option to rebuild the whole index using the MassIndexer API. This plugin provides a configuration which lets you to rebuild automatically your indexes on startup.
 
-To use the default options of the MassIndexer API, simply provide this option into your Config.groovy:
+To use the default options of the MassIndexer API, simply provide this option into your application.groovy:
 
 ```groovy
 
@@ -320,6 +318,21 @@ class SomeController {
 }
 ```
 
+#### Mixing with criteria query
+
+Criteria criteria = fullTextSession.createCriteria( clazz ).createAlias("session", "session").add(Restrictions.eq("session.id", 115L));
+
+```groovy
+  def myDomainClasses = MyDomainClass.search().list {
+    
+    criteria {
+       setFetchMode("authors", FetchMode.JOIN)
+    }
+    
+    fuzzy "description", "mi search"
+  }
+```
+
 #### Sorting the results
 
 sort() method accepts an optional second parameter to specify the sort order: "asc"/"desc". Default is "asc".
@@ -349,7 +362,7 @@ MyDomainClass.search().list {
 ```groovy
 def items = Item.search().list {
   ...
-  sort "my_special_field", "asc", org.apache.lucene.search.SortField.STRING_VAL
+  sort "my_special_field", "asc", org.apache.lucene.search.SortField.Type.STRING_VAL
   ...
 }
 ```
@@ -447,7 +460,7 @@ class MyDomainClass {
 
 #### Define named analyzers
 
-Named analyzers are global and can be defined within Config.groovy as following:
+Named analyzers are global and can be defined within application.groovy as following:
 
 ```groovy
 
@@ -535,7 +548,7 @@ def parser = new org.apache.lucene.queryParser.QueryParser (
 
 #### Define named filters
 
-Named filters are global and can be defined within Config.groovy as following:
+Named filters are global and can be defined within application.groovy as following:
 
 ```groovy
 
@@ -583,7 +596,7 @@ MyDomainClass.search().list {
 ```
 
 
-If you don't want to define named filter within Config.groovy, you can also filter results as following:
+If you don't want to define named filter within application.groovy, you can also filter results as following:
 
 ```groovy
 MyDomainClass.search().list {
@@ -611,6 +624,9 @@ https://github.com/mathpere/grails-hibernate-search-plugin/issues
 
 + http://twitter.com/ZeJulie
 
+**Louis Grignon**
+
++ https://github.com/lgrignon
 
 ## License
 

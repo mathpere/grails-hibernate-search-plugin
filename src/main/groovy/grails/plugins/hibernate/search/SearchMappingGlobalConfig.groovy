@@ -12,10 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.codehaus.groovy.grails.plugins.hibernate.search
+package grails.plugins.hibernate.search
 
 import org.hibernate.search.annotations.FilterCacheModeType
 import org.hibernate.search.cfg.SearchMapping
+
+import grails.plugins.*;
 
 class SearchMappingGlobalConfig {
 

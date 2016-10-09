@@ -12,34 +12,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.codehaus.groovy.grails.plugins.hibernate.search
+package grails.plugins.hibernate.search
 
 import org.apache.lucene.search.Filter
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.Sort
 import org.apache.lucene.search.SortField
 import org.grails.datastore.mapping.reflect.ClassPropertyFetcher
+import org.hibernate.Criteria;
 import org.hibernate.Session
+import org.hibernate.criterion.Restrictions;
 import org.hibernate.search.FullTextQuery
 import org.hibernate.search.FullTextSession
 import org.hibernate.search.MassIndexer
 import org.hibernate.search.Search
 import org.hibernate.search.query.dsl.FieldCustomization
 import org.hibernate.search.query.dsl.QueryBuilder
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.hibernate.search.query.dsl.FuzzyContext
 
-class HibernateSearchQueryBuilder {
+import grails.plugins.*;
 
-    private static final def SORT_TYPES = [( Integer ): SortField.INT,
-            ( Double ): SortField.DOUBLE,
-            ( Float ): SortField.FLOAT,
-            ( String ): SortField.STRING_VAL,
-            ( Long ): SortField.LONG,
-            ( BigDecimal ): SortField.DOUBLE,
+class HibernateSearchQueryBuilder {
+	
+	private final static Logger log = LoggerFactory.getLogger(this)
+
+    private static final def SORT_TYPES = [( Integer ): SortField.Type.INT,
+            ( Double ): SortField.Type.DOUBLE,
+            ( Float ): SortField.Type.FLOAT,
+            ( String ): SortField.Type.STRING_VAL,
+            ( Long ): SortField.Type.LONG,
+            ( BigDecimal ): SortField.Type.DOUBLE,
 
             // see Emmanuel Bernard's comment
             // https://hibernate.onjira.com/browse/HSEARCH-97
-            ( Date ): SortField.STRING]
+            ( Date ): SortField.Type.STRING]
 
     private static interface Component {
         Query createQuery( )
@@ -179,12 +187,14 @@ class HibernateSearchQueryBuilder {
     private static class FuzzyComponent extends Leaf {
         def matching
         def threshold
+		def prefixLength
 
         Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
 
         FieldCustomization createFieldCustomization( ) {
             FuzzyContext context = queryBuilder.keyword().fuzzy()
             if (threshold) { context.withThreshold( threshold ) }
+			if (prefixLength) { context.withPrefixLength( prefixLength ) }
             context.onField( field ) }
     }
 
@@ -224,7 +234,8 @@ class HibernateSearchQueryBuilder {
     private def offset = 0
     private def filterDefinitions = [:]
     private def projection = []
-
+	private def criteria
+	
     private def root
     private def currentNode
 
@@ -256,7 +267,14 @@ class HibernateSearchQueryBuilder {
         if ( filter ) {
             query.filter = filter
         }
-
+		
+		if ( criteria ) {
+			
+			log.info "add criteria query: " + criteria
+			
+			query.setCriteriaQuery(criteria);
+		}
+		
         if ( projection ) {
             query.setProjection projection as String[]
         }
@@ -361,6 +379,16 @@ class HibernateSearchQueryBuilder {
     def projection( String... projection ) {
         this.projection.addAll( projection )
     }
+	
+	def criteria( Closure criteria ) {
+		this.criteria = fullTextSession.createCriteria( clazz );
+		
+		criteria.delegate = this.criteria
+		criteria.resolveStrategy = Closure.DELEGATE_FIRST
+		this.criteria = criteria.call()
+		
+		log.debug "setting criteria: " + this.criteria
+	}
 
     def sort( String field, String order = ASC, type = null ) {
 
@@ -375,7 +403,7 @@ class HibernateSearchQueryBuilder {
                     break
 
                 case String:
-                    this.sortType = SortField."${type.toUpperCase()}"
+                    this.sortType = SortField.Type."${type.toUpperCase()}"
                     break
 
                 case int:
@@ -385,7 +413,7 @@ class HibernateSearchQueryBuilder {
             }
 
         } else {
-            this.sortType = SORT_TYPES[ClassPropertyFetcher.forClass( clazz ).getPropertyType( sort )] ?: SortField.STRING
+            this.sortType = SORT_TYPES[ClassPropertyFetcher.forClass( clazz ).getPropertyType( sort )] ?: SortField.Type.STRING
         }
     }
 

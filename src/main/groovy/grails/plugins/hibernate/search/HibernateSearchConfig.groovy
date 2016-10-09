@@ -1,14 +1,17 @@
-package org.codehaus.groovy.grails.plugins.hibernate.search
+package grails.plugins.hibernate.search
 
-import org.apache.commons.logging.LogFactory
 import org.hibernate.Session
 import org.hibernate.search.FullTextSession
 import org.hibernate.search.MassIndexer
 import org.hibernate.search.Search
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import grails.plugins.*;
 
 class HibernateSearchConfig {
-
-    private final static log = LogFactory.getLog this
+	
+	private final static Logger log = LoggerFactory.getLogger(HibernateSearchConfig.class);
 
     private MassIndexer massIndexer
     private final FullTextSession fullTextSession
@@ -25,8 +28,7 @@ class HibernateSearchConfig {
      */
     def rebuildIndexOnStart( Closure massIndexerDsl ) {
 
-        if ( log.debugEnabled )
-            log.debug "Start rebuilding indexes of all indexed entity types..."
+        log.debug "Start rebuilding indexes of all indexed entity types..."
 
         massIndexer = fullTextSession.createIndexer()
 
@@ -49,8 +51,7 @@ class HibernateSearchConfig {
         if ( !rebuild )
             return
 
-        if ( log.debugEnabled )
-            log.debug "Start rebuilding indexes of all indexed entity types..."
+        log.debug "Start rebuilding indexes of all indexed entity types..."
 
         massIndexer = fullTextSession.createIndexer().startAndWait()
     }

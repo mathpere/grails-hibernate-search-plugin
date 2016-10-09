@@ -12,15 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.codehaus.groovy.grails.plugins.hibernate.search
+package grails.plugins.hibernate.search
 
+import org.hibernate.search.annotations.Analyze;
 import org.hibernate.search.annotations.Index
+import org.hibernate.search.annotations.Norms;
 import org.hibernate.search.annotations.Resolution
 import org.hibernate.search.annotations.Store
+import org.hibernate.search.annotations.TermVector
+import org.hibernate.search.cfg.DocumentIdMapping;
 import org.hibernate.search.cfg.EntityMapping
 import org.hibernate.search.cfg.SearchMapping
 
 import java.lang.annotation.ElementType
+
+import grails.plugins.*;
 
 class SearchMappingEntityConfig {
 
@@ -57,10 +63,14 @@ class SearchMappingEntityConfig {
 
             if ( args.indexEmbedded instanceof Map ) {
                 def depth = args.indexEmbedded["depth"]
-
                 if ( depth ) {
                     searchMapping = searchMapping.depth( depth )
                 }
+				
+				def includeEmbeddedObjectId = args.indexEmbedded["includeEmbeddedObjectId"]
+				if ( includeEmbeddedObjectId ) {
+					searchMapping = searchMapping.includeEmbeddedObjectId(includeEmbeddedObjectId)
+				}
             }
         } else if ( args.containedIn ) {
 
@@ -70,6 +80,10 @@ class SearchMappingEntityConfig {
 
             searchMapping = searchMapping.property( name, ElementType.FIELD ).field().name( args.name ?: name )
 
+			if ( args.containsKey('analyze') ) {
+				searchMapping = searchMapping.analyze( args.analyze ? Analyze.YES : Analyze.NO )
+			}
+			
             if ( analyzer ) {
                 searchMapping = searchMapping.analyzer( analyzer )
             }
@@ -86,12 +100,24 @@ class SearchMappingEntityConfig {
                 searchMapping = searchMapping.store( Store."${args.store.toUpperCase()}" )
             }
 
+            if ( args.termVector ) {
+                searchMapping = searchMapping.termVector( TermVector."${args.termVector.toUpperCase()}" )
+            }
+
+            if ( args.norms ) {
+                searchMapping = searchMapping.norms( Norms."${args.norms.toUpperCase()}" )
+            }
+
             if ( args.numeric ) {
                 searchMapping = searchMapping.numericField().precisionStep( args.numeric )
             }
 
             if ( args.date ) {
                 searchMapping = searchMapping.dateBridge( Resolution."${args.date.toUpperCase()}" )
+            }
+
+            if ( args.boost ) {
+                searchMapping = searchMapping.boost( args.boost )
             }
 
             if ( args.bridge ) {
