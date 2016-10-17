@@ -187,9 +187,8 @@ public class HibernateSearchCapableSessionFactoryBean extends HibernateMappingCo
 						.getStaticPropertyValue("search", Closure.class);
 
 				if (searchClosure != null) {
-
 					SearchMappingEntityConfig searchMappingEntityConfig = new SearchMappingEntityConfig(searchMapping,
-							domainClass.getClazz());
+							domainClass);
 
 					searchClosure.setDelegate(searchMappingEntityConfig);
 					searchClosure.setResolveStrategy(Closure.DELEGATE_FIRST);

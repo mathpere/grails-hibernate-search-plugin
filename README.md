@@ -114,30 +114,30 @@ class MyDomainClass {
     @DocumentId
     Long id
 
-    @Field(index=Index.TOKENIZED)
+    @Field(index=Index.YES)
     String author
     
-    @Field(index=Index.TOKENIZED)
+    @Field(index=Index.YES)
     String body
     
     @Field
     @DateBridge(resolution=Resolution.DAY)
     Date publishedDate
     
-    @Field(index=Index.TOKENIZED)
+    @Field(index=Index.YES)
     String summary
     
-    @Field(index=Index.TOKENIZED)
+    @Field(index=Index.YES)
     String title
     
-    @Field(index=Index.UN_TOKENIZED)
+    @Field(index=Index.YES)
     Status status
     
     @Field 
     @NumericField( precisionStep = 2)
     Double price
     
-    @Field(index=Index.UN_TOKENIZED)
+    @Field(index=Index.YES)
     @FieldBridge(impl = PaddedIntegerBridge.class, params = @Parameter(name="padding", value="10"))
     Integer someInteger
 
@@ -453,8 +453,8 @@ class MyDomainClass {
     [...]
 
     static search = {
-        author index: 'tokenized', store: 'yes'
-        body index: 'tokenized', store: 'yes'
+        author index: 'yes', store: 'yes'
+        body index: 'yes', store: 'yes'
     }
 }
 ```
@@ -515,8 +515,8 @@ class MyDomainClass {
 
     static search = {
         analyzer = 'ngram'
-        author index: 'tokenized'
-        body index: 'tokenized'
+        author index: 'yes'
+        body index: 'yes'
     }
 
 }
@@ -532,8 +532,9 @@ class MyDomainClass {
     ...
 
     static search = {
-        author index: 'tokenized'
-        body index: 'tokenized', analyzer: 'ngram'
+        author index: 'yes'
+        body index: 'yes', analyzer: 'ngram'
+        other index: 'yes', analyzer: new MyFilter()
     }
 
 }

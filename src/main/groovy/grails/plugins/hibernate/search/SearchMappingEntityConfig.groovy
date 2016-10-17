@@ -22,12 +22,17 @@ import org.hibernate.search.annotations.Store
 import org.hibernate.search.annotations.TermVector
 import org.hibernate.search.cfg.DocumentIdMapping;
 import org.hibernate.search.cfg.EntityMapping
+import org.hibernate.search.cfg.FieldMapping;
+import org.hibernate.search.cfg.PropertyMapping;
 import org.hibernate.search.cfg.SearchMapping
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.ElementType
+import java.lang.reflect.Field;
 
+import grails.core.GrailsDomainClass
+import grails.core.GrailsDomainClassProperty;
 import grails.plugins.*;
 
 class SearchMappingEntityConfig {
@@ -39,14 +44,16 @@ class SearchMappingEntityConfig {
     def analyzer
 
     def searchMapping
-    private final clazz
+    private final GrailsDomainClass domainClass
 
     private final EntityMapping entityMapping
 
-    public SearchMappingEntityConfig( SearchMapping searchMapping, Class clazz ) {
-        this.clazz = clazz
-        this.entityMapping = searchMapping.entity( clazz )
+    public SearchMappingEntityConfig( SearchMapping searchMapping, GrailsDomainClass domainClass ) {
+        this.domainClass = domainClass
+		
+        this.entityMapping = searchMapping.entity( domainClass.getClazz() )
         this.searchMapping = entityMapping.indexed().property( IDENTITY, ElementType.FIELD ).documentId()
+		
     }
 
     def setClassBridge( Map classBridge ) {
@@ -60,9 +67,11 @@ class SearchMappingEntityConfig {
     def invokeMethod( String name, argsAsList ) {
 
         def args = argsAsList[0] ?: [:]
-
+		
         if ( args.indexEmbedded ) {
 
+			log.debug "adding indexEmbedded property: " + name
+			
             searchMapping = searchMapping.property( name, ElementType.FIELD ).indexEmbedded()
 
             if ( args.indexEmbedded instanceof Map ) {
@@ -78,64 +87,91 @@ class SearchMappingEntityConfig {
             }
         } else if ( args.containedIn ) {
 
+			log.debug "adding containedIn property: " + name
+		
             searchMapping = searchMapping.property( name, ElementType.FIELD ).containedIn()
 
         } else {
-
-			log.debug "adding indexed field: " + name
 		
-            searchMapping = searchMapping.property( name, ElementType.FIELD ).field().name( args.name ?: name )
+			log.debug "adding indexed property: " + name
 
-			if ( args.containsKey('analyze') ) {
-				searchMapping = searchMapping.analyze( args.analyze ? Analyze.YES : Analyze.NO )
-			}
+			GrailsDomainClassProperty property = domainClass.getPersistentProperty(name);
+		
+			EntityMapping targetEntityMapping = entityMapping;
 			
-            if ( analyzer ) {
-                searchMapping = searchMapping.analyzer( analyzer )
-            }
+			// find the field in the parent class hierarchy (starting from domain class itself) 
+			Class currentDomainClass = domainClass.getClazz();
+			while (currentDomainClass != null) {
+				try {
+					Field backingField = currentDomainClass.getDeclaredField(property.getName());
 
-            if ( args.analyzer ) {
-                searchMapping = searchMapping.analyzer( args.analyzer )
-            }
+					// field exists on domain class hierarchy
+					targetEntityMapping = searchMapping.entity( currentDomainClass );
+					log.debug "> property " + backingField.getDeclaringClass() + ".$name found";
+					currentDomainClass = null;
+				} catch (NoSuchFieldException e) {
+					currentDomainClass = currentDomainClass.getSuperclass(); 
+				}
+			}
 
-            if ( args.index ) {
-                searchMapping = searchMapping.index( Index."${args.index.toUpperCase()}" )
-            }
-
-            if ( args.store ) {
-                searchMapping = searchMapping.store( Store."${args.store.toUpperCase()}" )
-            }
-
-            if ( args.termVector ) {
-                searchMapping = searchMapping.termVector( TermVector."${args.termVector.toUpperCase()}" )
-            }
-
-            if ( args.norms ) {
-                searchMapping = searchMapping.norms( Norms."${args.norms.toUpperCase()}" )
-            }
-
-            if ( args.numeric ) {
-                searchMapping = searchMapping.numericField().precisionStep( args.numeric )
-            }
-
-            if ( args.date ) {
-                searchMapping = searchMapping.dateBridge( Resolution."${args.date.toUpperCase()}" )
-            }
-
-            if ( args.boost ) {
-                searchMapping = searchMapping.boost( args.boost )
-            }
-
-            if ( args.bridge ) {
-
-                searchMapping = searchMapping.bridge( args.bridge["class"] )
-
-                def params = args.bridge["params"]
-
-                params?.each {k, v ->
-                    searchMapping = searchMapping.param( k.toString(), v.toString() )
-                }
-            }
+			FieldMapping fieldMapping = targetEntityMapping.property( name, ElementType.FIELD ).field().name( args.name ?: name )
+            registerIndexedProperty(fieldMapping, args)
         }
     }
+	
+	private void registerIndexedProperty(FieldMapping fieldMapping, args) {
+		
+		def searchMapping = fieldMapping;
+		
+		if ( args.containsKey('analyze') ) {
+			searchMapping = searchMapping.analyze( args.analyze ? Analyze.YES : Analyze.NO )
+		}
+		
+		if ( analyzer ) {
+			searchMapping = searchMapping.analyzer( analyzer )
+		}
+
+		if ( args.analyzer ) {
+			searchMapping = searchMapping.analyzer( args.analyzer )
+		}
+
+		if ( args.index ) {
+			searchMapping = searchMapping.index( Index."${args.index.toUpperCase()}" )
+		}
+
+		if ( args.store ) {
+			searchMapping = searchMapping.store( Store."${args.store.toUpperCase()}" )
+		}
+
+		if ( args.termVector ) {
+			searchMapping = searchMapping.termVector( TermVector."${args.termVector.toUpperCase()}" )
+		}
+
+		if ( args.norms ) {
+			searchMapping = searchMapping.norms( Norms."${args.norms.toUpperCase()}" )
+		}
+
+		if ( args.numeric ) {
+			searchMapping = searchMapping.numericField().precisionStep( args.numeric )
+		}
+
+		if ( args.date ) {
+			searchMapping = searchMapping.dateBridge( Resolution."${args.date.toUpperCase()}" )
+		}
+
+		if ( args.boost ) {
+			searchMapping = searchMapping.boost( args.boost )
+		}
+
+		if ( args.bridge ) {
+
+			searchMapping = searchMapping.bridge( args.bridge["class"] )
+
+			def params = args.bridge["params"]
+
+			params?.each {k, v ->
+				searchMapping = searchMapping.param( k.toString(), v.toString() )
+			}
+		}
+	}
 }
