@@ -23,6 +23,8 @@ import org.hibernate.search.annotations.TermVector
 import org.hibernate.search.cfg.DocumentIdMapping;
 import org.hibernate.search.cfg.EntityMapping
 import org.hibernate.search.cfg.SearchMapping
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.ElementType
 
@@ -30,6 +32,8 @@ import grails.plugins.*;
 
 class SearchMappingEntityConfig {
 
+	private final static Logger log = LoggerFactory.getLogger(this);
+	
     private static final String IDENTITY = 'id'
 
     def analyzer
@@ -78,6 +82,8 @@ class SearchMappingEntityConfig {
 
         } else {
 
+			log.debug "adding indexed field: " + name
+		
             searchMapping = searchMapping.property( name, ElementType.FIELD ).field().name( args.name ?: name )
 
 			if ( args.containsKey('analyze') ) {

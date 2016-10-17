@@ -1,6 +1,5 @@
 package grails.plugins.hibernate.search
 
-import org.apache.commons.logging.LogFactory;
 import org.grails.core.util.ClassPropertyFetcher
 import org.grails.orm.hibernate.HibernateDatastore
 import org.grails.orm.hibernate.cfg.HibernateMappingContext;
