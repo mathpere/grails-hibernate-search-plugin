@@ -84,7 +84,6 @@ grailsPublish {
 	// user/key: useless, see https://medium.com/@benorama/how-to-publish-your-grails-3-plugin-to-bintray-c341b24f567d#.elz43j5nq
 	user = 'lgrignon'
 //	key = '????'
-	userOrg = 'idcapture'
 	githubSlug = 'mathpere/grails-hibernate-search-plugin'
 	license { name = 'Apache-2.0' }
 	title = "Grails Hibernate Search Plugin"
