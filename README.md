@@ -645,6 +645,11 @@ Support for indexing inherited properties
 
 + https://github.com/lgrignon
 
+Publish with:
+```
+gradlew clean bintrayUpload --stacktrace
+```
+
 ## License
 
 Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
