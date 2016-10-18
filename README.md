@@ -613,6 +613,16 @@ MyDomainClass.search().list {
 }
 ```
 
+### Options 
+
+```groovy
+grails.plugins.hibernatesearch = {
+	rebuildIndexOnStart false // see related section above
+	throwOnEmptyQuery false // throw or not exception when Hibernate Search raises an EmptyQueryException
+	fullTextFilter /* ... */ // see related section above
+}
+```
+
 ## Change log
 
 ### v2.0.2
@@ -644,6 +654,11 @@ Support for indexing inherited properties
 **Louis Grignon**
 
 + https://github.com/lgrignon
+
+Publish with:
+```
+gradlew clean bintrayUpload --stacktrace
+```
 
 ## License
 

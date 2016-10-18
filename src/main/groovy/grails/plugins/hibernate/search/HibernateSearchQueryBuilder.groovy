@@ -26,6 +26,7 @@ import org.hibernate.search.FullTextQuery
 import org.hibernate.search.FullTextSession
 import org.hibernate.search.MassIndexer
 import org.hibernate.search.Search
+import org.hibernate.search.exception.EmptyQueryException;
 import org.hibernate.search.query.dsl.FieldCustomization
 import org.hibernate.search.query.dsl.QueryBuilder
 import org.slf4j.Logger;
@@ -65,6 +66,38 @@ class HibernateSearchQueryBuilder {
             children << component
         }
 
+		/**
+		 * @return true if composite contains at least one valid (not empty) query
+		 */
+		protected boolean forEachQuery( Closure action ) {
+			
+			boolean notEmpty = false;
+			if (children) {
+				
+				for (child in children) {
+					try {
+	
+						Query subQuery = child.createQuery();
+						
+						action.delegate = subQuery
+						action.resolveStrategy = Closure.DELEGATE_FIRST
+						action.call(subQuery)
+						notEmpty = true;
+						
+					} catch (EmptyQueryException e) {
+						if (HibernateSearchGrailsPlugin.pluginConfig.throwExceptionOnEmptyQuery) {
+							throw e
+						} else {
+							log.warn 'empty Hibernate search query ignored! ' + child, e
+						}
+					}
+				}
+			
+			}
+			
+			return notEmpty
+		}
+		
         def toString( indent ) {
             [( "-" * indent ) + this.class.simpleName, children.collect { it.toString( indent + 1 ) }].flatten().findAll {it}.join( "\n" )
         }
@@ -100,54 +133,47 @@ class HibernateSearchQueryBuilder {
 
     private static class MustNotComponent extends Composite {
         Query createQuery( ) {
-            if ( children ) {
 
-                def query = queryBuilder.bool()
+            def query = queryBuilder.bool()
+			boolean notEmpty = forEachQuery { subQuery ->
+				query = query.must( subQuery ).not()
+			}
 
-                children*.createQuery().each {
-                    query = query.must( it ).not()
-                }
-
-                query.createQuery()
-
-            } else {
-                queryBuilder.all().createQuery()
-            }
+			if (notEmpty) {
+				return query.createQuery()
+			} else {
+				return queryBuilder.all().createQuery()
+			}
+			
         }
     }
     private static class MustComponent extends Composite {
         Query createQuery( ) {
-            if ( children ) {
+            def query = queryBuilder.bool()
+			boolean notEmpty = forEachQuery { subQuery ->
+				query = query.must( subQuery )
+			}
 
-                def query = queryBuilder.bool()
-
-                children*.createQuery().each {
-                    query = query.must( it )
-                }
-
-                query.createQuery()
-
-            } else {
-                queryBuilder.all().createQuery()
-            }
+			if (notEmpty) {
+				return query.createQuery()
+			} else {
+				return queryBuilder.all().createQuery()
+			}
         }
     }
 
     private static class ShouldComponent extends Composite {
         Query createQuery( ) {
-            if ( children ) {
+            def query = queryBuilder.bool()
+			boolean notEmpty = forEachQuery { subQuery ->
+				query = query.should( subQuery )
+			}
 
-                def query = queryBuilder.bool()
-
-                children*.createQuery().each {
-                    query = query.should( it )
-                }
-
-                query.createQuery()
-
-            } else {
-                queryBuilder.all().createQuery()
-            }
+			if (notEmpty) {
+				return query.createQuery()
+			} else {
+				return queryBuilder.all().createQuery()
+			}
         }
     }
 
@@ -219,6 +245,8 @@ class HibernateSearchQueryBuilder {
 
     private static final List MASS_INDEXER_METHODS = MassIndexer.methods.findAll { it.returnType == MassIndexer }*.name
 
+	private final HibernateSearchConfig pluginConfig;
+	
     private final FullTextSession fullTextSession
     private final clazz
     private final instance
@@ -241,15 +269,16 @@ class HibernateSearchQueryBuilder {
 
     Filter filter
 
-    HibernateSearchQueryBuilder( clazz, instance, Session session ) {
+    HibernateSearchQueryBuilder( clazz, instance, Session session, HibernateSearchConfig pluginConfig ) {
         this.clazz = clazz
         this.fullTextSession = Search.getFullTextSession( session )
         this.instance = instance
         this.staticContext = instance == null
+		this.pluginConfig = pluginConfig;
     }
 
-    HibernateSearchQueryBuilder( clazz, Session session ) {
-        this( clazz, null, session )
+    HibernateSearchQueryBuilder( clazz, Session session, HibernateSearchConfig pluginConfig ) {
+        this( clazz, null, session, pluginConfig )
     }
 
     private FullTextQuery createFullTextQuery( ) {
