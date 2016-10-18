@@ -35,6 +35,12 @@ import grails.core.GrailsDomainClass;
 import grails.orm.bootstrap.HibernateDatastoreSpringInitializer;
 import groovy.lang.Closure;
 
+/**
+ * This bean inherits GORM session factory bean in order to initialize Hibernate
+ * Search right before sessionFactory instantiation
+ * 
+ * @author lgrignon
+ */
 public class HibernateSearchCapableSessionFactoryBean extends HibernateMappingContextSessionFactoryBean {
 
 	private final static Logger log = LoggerFactory.getLogger(HibernateSearchCapableSessionFactoryBean.class);
@@ -55,6 +61,7 @@ public class HibernateSearchCapableSessionFactoryBean extends HibernateMappingCo
 			ClosureEventTriggeringInterceptor eventTriggeringInterceptor,
 			HibernateMappingContext hibernateMappingContext, DataSource dataSource) {
 
+		// this constructor is an awful duplication of GORM's sessionFactory bean initialization
 		this.grailsApplication = grailsApplication;
 		this.domainClasses = domainClasses;
 		this.setEntityInterceptor(entityInterceptor);

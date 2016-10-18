@@ -61,6 +61,8 @@ hibernate:
 
 Add a static search closure as following:
 
+**Note**: You can use properties from super class and traits with no additional configuration (since 2.0.2)
+
 ```groovy
 class MyDomainClass {
 
@@ -611,13 +613,23 @@ MyDomainClass.search().list {
 }
 ```
 
+## Change log
 
-## Bug tracker
+### v2.0.2
+Support for indexing trait properties
 
-Please report any issue on GitHub: 
+### v2.0.1 
+Support for indexing inherited properties
 
-https://github.com/mathpere/grails-hibernate-search-plugin/issues
+### v2.0 
+* Grails 3.1.x
+* GORM 5
+* Hibernate 5.1.1
+* Hibernate Search 5.5.4
 
+### v1.x 
+* Grails 2.x
+* Hibernate 4
 
 ## Authors
 
