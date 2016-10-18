@@ -17,6 +17,8 @@ class HibernateSearchGrailsPlugin extends Plugin {
 	
 	private final static Logger log = LoggerFactory.getLogger(this)
 	
+	public static HibernateSearchConfig pluginConfig;
+	
 	def grailsVersion = "3.1.12 > *"
 
 	def profiles = ['web']
@@ -70,12 +72,12 @@ class HibernateSearchGrailsPlugin extends Plugin {
 				log.info "* " + clazz.getSimpleName() + " is indexed"
 				grailsClass.metaClass.static.search = {
 					
-					new HibernateSearchQueryBuilder( clazz, applicationContext.sessionFactory.getCurrentSession() )
+					new HibernateSearchQueryBuilder( clazz, applicationContext.sessionFactory.getCurrentSession(), pluginConfig )
 				}
 
 				grailsClass.metaClass.search = {
 					def instance = delegate
-					new HibernateSearchQueryBuilder( clazz, instance, applicationContext.sessionFactory.getCurrentSession() )
+					new HibernateSearchQueryBuilder( clazz, instance, applicationContext.sessionFactory.getCurrentSession(), pluginConfig )
 				}
 			}
 		}
@@ -88,7 +90,8 @@ class HibernateSearchGrailsPlugin extends Plugin {
 			log.debug 'hibernatesearch config found'
 			Session session = applicationContext.sessionFactory.openSession();
 
-			hibernateSearchConfig.delegate = new HibernateSearchConfig( session )
+			pluginConfig = new HibernateSearchConfig( session )
+			hibernateSearchConfig.delegate = pluginConfig
 			hibernateSearchConfig.resolveStrategy = Closure.DELEGATE_FIRST
 			hibernateSearchConfig.call()
 		}

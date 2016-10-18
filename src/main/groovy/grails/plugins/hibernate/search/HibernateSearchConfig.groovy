@@ -17,6 +17,8 @@ class HibernateSearchConfig {
     private final FullTextSession fullTextSession
     private static final List MASS_INDEXER_METHODS = MassIndexer.methods.findAll { it.returnType == MassIndexer }*.name
 
+	boolean throwExceptionOnEmptyQuery
+	
     HibernateSearchConfig( Session session ) {
         this.fullTextSession = Search.getFullTextSession( session )
     }
@@ -55,6 +57,16 @@ class HibernateSearchConfig {
 
         massIndexer = fullTextSession.createIndexer().startAndWait()
     }
+	
+	/**
+	 * Throws exception if Hibernate Search raises an EmptyQueryException, (could occur if analyzer has stop words) default false
+	 */
+	def throwOnEmptyQuery( boolean throwException ) {
+		
+		log.debug "throwExceptionOnEmptyQuery = " + throwException
+		
+		throwExceptionOnEmptyQuery = throwException
+	}
 
     Object invokeMethod( String name, Object args ) {
         if ( name in MASS_INDEXER_METHODS ) {
