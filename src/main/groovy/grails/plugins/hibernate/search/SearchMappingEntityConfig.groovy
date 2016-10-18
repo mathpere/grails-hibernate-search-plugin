@@ -97,24 +97,35 @@ class SearchMappingEntityConfig {
 
 			GrailsDomainClassProperty property = domainClass.getPersistentProperty(name);
 		
-			EntityMapping targetEntityMapping = entityMapping;
+			Field backingField = null;
 			
-			// find the field in the parent class hierarchy (starting from domain class itself) 
+			// try to find the field in the parent class hierarchy (starting from domain class itself)
 			Class currentDomainClass = domainClass.getClazz();
 			while (currentDomainClass != null) {
 				try {
-					Field backingField = currentDomainClass.getDeclaredField(property.getName());
-
-					// field exists on domain class hierarchy
-					targetEntityMapping = searchMapping.entity( currentDomainClass );
-					log.debug "> property " + backingField.getDeclaringClass() + ".$name found";
-					currentDomainClass = null;
+					backingField = currentDomainClass.getDeclaredField(property.getName());
+					break;
 				} catch (NoSuchFieldException e) {
+					// and in groovy's traits
+					backingField = currentDomainClass.getDeclaredFields().find { field -> field.getName().endsWith('__' + property.getName()) };
+					if (backingField != null) {
+						break;
+					}
+					
 					currentDomainClass = currentDomainClass.getSuperclass(); 
 				}
 			}
+			
+			if (backingField == null) {
+				log.warn "indexed property not found! name=" + name + " entity=" + domainClass
+				return;
+			}
+			
+			log.debug "> property " + backingField.getDeclaringClass() + ".$name found";
+			
+			EntityMapping targetEntityMapping = searchMapping.entity( currentDomainClass );
 
-			FieldMapping fieldMapping = targetEntityMapping.property( name, ElementType.FIELD ).field().name( args.name ?: name )
+			FieldMapping fieldMapping = targetEntityMapping.property( backingField.getName(), ElementType.FIELD ).field().name( args.name ?: name )
             registerIndexedProperty(fieldMapping, args)
         }
     }
