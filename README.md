@@ -625,6 +625,12 @@ grails.plugins.hibernatesearch = {
 
 ## Change log
 
+### v2.1 
+* Grails 3.2.x
+* GORM 6
+* Hibernate 5.2.9
+* Hibernate Search 5.7
+
 ### v2.0.2
 Support for indexing trait properties
 
@@ -657,7 +663,7 @@ Support for indexing inherited properties
 
 Publish with:
 ```
-gradlew clean bintrayUpload --stacktrace
+gradlew clean bintrayUpload --stacktrace -PbintrayUser=... -PbintrayKey=...
 ```
 
 ## License
