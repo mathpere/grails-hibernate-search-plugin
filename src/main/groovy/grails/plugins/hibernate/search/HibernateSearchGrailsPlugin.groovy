@@ -19,11 +19,10 @@ class HibernateSearchGrailsPlugin extends Plugin {
 	
 	public static HibernateSearchConfig pluginConfig;
 	
-	def grailsVersion = "3.1.12 > *"
+	def grailsVersion = "3.2 > *"
 
-	def profiles = ['web']
-
-	def loadAfter =	 ['hibernate', 'hibernate5']
+	def dependsOn = [hibernate: "* > 6.0"]
+	def loadAfter =	 ['hibernate']
 	def title = "Hibernate Search Plugin"
 	def author = "Mathieu Perez, Julie Ingignoli, Louis Grignon"
 	def authorEmail = "mathieu.perez@novacodex.net, julie.ingignoli@novacodex.net, "
@@ -37,25 +36,19 @@ class HibernateSearchGrailsPlugin extends Plugin {
 	def issueManagement = [system: 'github', url: 'https://github.com/mathpere/grails-hibernate-search-plugin/issues']
 	def scm = [url: 'https://github.com/mathpere/grails-hibernate-search-plugin']
 
+	@Override
+	void onStartup(Map<String, Object> event) {
+		log.info("\n\nstartup plugin\n\n")
+	}
+	
 	Closure doWithSpring() {
 		{  -> 
+
+			Class configClass = grails.plugins.hibernate.search.HibernateSearchMappingContextConfiguration.class;
+			log.info "plugin ready - forcing hibernate configClass to $configClass"
+			HibernateSearchMappingContextConfiguration.grailsApplication = grailsApplication;
 			
-			ApplicationContext applicationContext = grailsApplication.getMainContext();
-			
-			sessionFactory( 
-				HibernateSearchCapableSessionFactoryBean, 
-				grailsApplication, 
-				grailsApplication.domainClasses, 
-				ref('entityInterceptor'), 
-				ref('hibernateProperties'), 
-				ref('hibernateEventListeners'),
-				ref('eventTriggeringInterceptor'), 
-				ref('grailsDomainClassMappingContext'), 
-				ref('dataSource') ) {
-				bean -> 
-				
-				log.info "HibernateSearchCapableSessionFactoryBean initialized"
-			}
+			grailsApplication.config.hibernate.configClass = configClass;
 		}
 	}
 	

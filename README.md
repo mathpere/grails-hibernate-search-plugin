@@ -11,7 +11,7 @@ Add the following repository
 
 And add the following to your dependencies
 ```
-  compile("org.grails.plugins:hibernate-search:2.0")
+  compile("org.grails.plugins:hibernate-search:2.1")
 ```
 
 ### Configuration

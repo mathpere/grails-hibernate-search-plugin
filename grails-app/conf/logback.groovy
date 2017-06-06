@@ -22,4 +22,4 @@ if (Environment.isDevelopmentMode() && targetDir) {
     logger("StackTrace", ERROR, ['FULL_STACKTRACE'], false)
 }
 
-//logger("grails.plugins.hibernate.search", DEBUG, ['STDOUT'], false)
+logger("grails.plugins.hibernate.search", DEBUG, ['STDOUT'], false)
