@@ -89,41 +89,43 @@ grailsPublish {
 	developers = [mathpere: "Mathieu Perez", lgrignon: "Louis Grignon"]
 }
 
-
-publishing {
-	repositories {
-		maven {
-			credentials {
-				username "$hibernateSearchMavenUser"
-				password "$hibernateSearchMavenPassword"
-			}
-			url "$hibernateSearchMavenRepoUrl/libs-release-local"
-		}
-	}
-	publications {
-		mavenJar(MavenPublication) {
-			groupId 'org.grails.plugins'
-			artifactId 'hibernate-search'
-
-			pom.withXml {
-				def pomNode = asNode()
-				
-				pomNode.appendNode('description',
-					'Grails 3.2.x plugin for Hibernate Search')
-				
-				pomNode.dependencyManagement.replaceNode {}
-
-				// simply remove dependencies without a version
-				// version-less dependencies are handled with dependencyManagement
-				// see https://github.com/spring-gradle-plugins/dependency-management-plugin/issues/8 for more complete solutions
-				pomNode.dependencies.dependency.findAll {
-					it.version.text().isEmpty()
-				}.each {
-					it.replaceNode {}
+if (project.hasProperty('hibernateSearchMavenUser') && project.hasProperty('hibernateSearchMavenPassword') && project.hasProperty('hibernateSearchMavenRepoUrl')) {
+	println "Configure publish tasks"
+	publishing {
+		repositories {
+			maven {
+				credentials {
+					username "$hibernateSearchMavenUser"
+					password "$hibernateSearchMavenPassword"
 				}
+				url "$hibernateSearchMavenRepoUrl/libs-release-local"
 			}
+		}
+		publications {
+			mavenJar(MavenPublication) {
+				groupId 'org.grails.plugins'
+				artifactId 'hibernate-search'
 
-			from components.java
+				pom.withXml {
+					def pomNode = asNode()
+					
+					pomNode.appendNode('description',
+						'Grails 3.2.x plugin for Hibernate Search')
+					
+					pomNode.dependencyManagement.replaceNode {}
+
+					// simply remove dependencies without a version
+					// version-less dependencies are handled with dependencyManagement
+					// see https://github.com/spring-gradle-plugins/dependency-management-plugin/issues/8 for more complete solutions
+					pomNode.dependencies.dependency.findAll {
+						it.version.text().isEmpty()
+					}.each {
+						it.replaceNode {}
+					}
+				}
+
+				from components.java
+			}
 		}
 	}
 }
