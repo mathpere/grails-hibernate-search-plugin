@@ -28,7 +28,7 @@ Add the following repository
 
 And add the following to your dependencies
 ```
-  compile("org.grails.plugins:hibernate-search:2.1.0")
+  compile("org.grails.plugins:hibernate-search:2.1.1")
   compile("org.grails.plugins:hibernate5:6.1.4")
   compile("org.grails.plugins:cache")
   compile("org.hibernate:hibernate-core:5.2.9.Final")
