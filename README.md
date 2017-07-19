@@ -19,6 +19,8 @@ This plugin aims to integrate Hibernate Search features to Grails in very few st
 
 ## Getting started
 
+If you don't want to start from the [template project](#examples), you could start a fresh project:
+
 Add the following repository
 ```
   maven { url  "http://idcapture.bintray.com/plugins" }
@@ -26,7 +28,11 @@ Add the following repository
 
 And add the following to your dependencies
 ```
-  compile("org.grails.plugins:hibernate-search:2.1")
+  compile("org.grails.plugins:hibernate-search:2.1.0")
+  compile("org.grails.plugins:hibernate5:6.1.4")
+  compile("org.grails.plugins:cache")
+  compile("org.hibernate:hibernate-core:5.2.9.Final")
+  compile("org.hibernate:hibernate-ehcache:5.2.9.Final")
 ```
 
 ### Configuration
