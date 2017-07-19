@@ -21,6 +21,7 @@ import org.hibernate.search.annotations.Resolution
 import org.hibernate.search.annotations.Store
 import org.hibernate.search.annotations.TermVector
 import org.hibernate.search.cfg.DocumentIdMapping;
+import org.hibernate.search.cfg.EntityDescriptor
 import org.hibernate.search.cfg.EntityMapping
 import org.hibernate.search.cfg.FieldMapping;
 import org.hibernate.search.cfg.PropertyMapping;
@@ -43,16 +44,18 @@ class SearchMappingEntityConfig {
 
     def analyzer
 
-    def searchMapping
+    def mapping
     private final GrailsDomainClass domainClass
-
-    private final EntityMapping entityMapping
+	
+	private final EntityMapping entityMapping
+    private final SearchMapping searchMapping
 
     public SearchMappingEntityConfig( SearchMapping searchMapping, GrailsDomainClass domainClass ) {
         this.domainClass = domainClass
 		
+		this.searchMapping = searchMapping;
         this.entityMapping = searchMapping.entity( domainClass.getClazz() )
-        this.searchMapping = entityMapping.indexed().property( IDENTITY, ElementType.FIELD ).documentId()
+        this.mapping = entityMapping.indexed().property( IDENTITY, ElementType.FIELD ).documentId()
 		
     }
 
@@ -72,24 +75,24 @@ class SearchMappingEntityConfig {
 
 			log.debug "adding indexEmbedded property: " + name
 			
-            searchMapping = searchMapping.property( name, ElementType.FIELD ).indexEmbedded()
+            mapping = mapping.property( name, ElementType.FIELD ).indexEmbedded()
 
             if ( args.indexEmbedded instanceof Map ) {
                 def depth = args.indexEmbedded["depth"]
                 if ( depth ) {
-                    searchMapping = searchMapping.depth( depth )
+                    mapping = mapping.depth( depth )
                 }
 				
 				def includeEmbeddedObjectId = args.indexEmbedded["includeEmbeddedObjectId"]
 				if ( includeEmbeddedObjectId ) {
-					searchMapping = searchMapping.includeEmbeddedObjectId(includeEmbeddedObjectId)
+					mapping = mapping.includeEmbeddedObjectId(includeEmbeddedObjectId)
 				}
             }
         } else if ( args.containedIn ) {
 
 			log.debug "adding containedIn property: " + name
 		
-            searchMapping = searchMapping.property( name, ElementType.FIELD ).containedIn()
+            mapping = mapping.property( name, ElementType.FIELD ).containedIn()
 
         } else {
 		
@@ -123,7 +126,7 @@ class SearchMappingEntityConfig {
 			
 			log.debug "> property " + backingField.getDeclaringClass() + ".$name found";
 			
-			EntityMapping targetEntityMapping = searchMapping.entity( currentDomainClass );
+			EntityMapping targetEntityMapping = mapping.entity( currentDomainClass );
 
 			FieldMapping fieldMapping = targetEntityMapping.property( backingField.getName(), ElementType.FIELD ).field().name( args.name ?: name )
             registerIndexedProperty(fieldMapping, args)
@@ -184,5 +187,9 @@ class SearchMappingEntityConfig {
 				searchMapping = searchMapping.param( k.toString(), v.toString() )
 			}
 		}
+	}
+	
+	public EntityDescriptor getEntityDescriptor() {
+		return searchMapping.getEntity( domainClass.getClazz() )
 	}
 }

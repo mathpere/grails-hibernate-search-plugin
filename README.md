@@ -296,6 +296,7 @@ The plugin provides you dynamic method to search for indexed entities.
 
 All indexed domain classes provides .search() method which lets you to list the results.
 The plugin provides a search DSL for simplifying the way you can search. Here is what it looks like with the search DSL:
+(See the HibernateSearchQueryBuilder class to check the available methods)
 
 ```groovy
 class SomeController {

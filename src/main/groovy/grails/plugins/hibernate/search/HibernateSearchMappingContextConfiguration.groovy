@@ -2,14 +2,20 @@ package grails.plugins.hibernate.search;
 
 import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
+import static grails.plugins.hibernate.search.HibernateSearchGrailsPlugin.INDEXED_ENTITIES_GRAILS_APP_CONFIG_KEY;
 
 import java.io.File;
+import java.lang.annotation.ElementType;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.grails.core.util.ClassPropertyFetcher;
 import org.grails.orm.hibernate.cfg.HibernateMappingContextConfiguration;
 import org.hibernate.HibernateException;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.search.cfg.EntityDescriptor;
+import org.hibernate.search.cfg.PropertyDescriptor;
 import org.hibernate.search.cfg.SearchMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +24,7 @@ import org.springframework.jndi.JndiTemplate;
 import grails.core.GrailsApplication;
 import grails.core.GrailsClass;
 import grails.core.GrailsDomainClass;
+import grails.core.GrailsDomainClassProperty;
 import grails.orm.bootstrap.HibernateDatastoreSpringInitializer;
 import groovy.lang.Closure;
 
@@ -39,7 +46,12 @@ public class HibernateSearchMappingContextConfiguration extends HibernateMapping
 
 	public static GrailsApplication grailsApplication;
 
-	@SuppressWarnings("rawtypes")
+	private Map<String, Map<String, PropertyDescriptor>> indexedPropertiesByName;
+
+	public HibernateSearchMappingContextConfiguration() {
+		this.indexedPropertiesByName = new HashMap<>();
+	}
+
 	@Override
 	public SessionFactory buildSessionFactory() throws HibernateException {
 		Configuration configuration = this;
@@ -107,9 +119,27 @@ public class HibernateSearchMappingContextConfiguration extends HibernateMapping
 					searchClosure.setDelegate(searchMappingEntityConfig);
 					searchClosure.setResolveStrategy(Closure.DELEGATE_FIRST);
 					searchClosure.call();
+
+					Map<String, PropertyDescriptor> indexedProperties = new HashMap<>();
+					for (GrailsDomainClassProperty property : domainClass.getPersistentProperties()) {
+						PropertyDescriptor indexedPropertyDescriptor = searchMapping
+								.getEntityDescriptor(domainClass.getClazz())
+								.getPropertyDescriptor(property.getName(), ElementType.FIELD);
+						if (indexedPropertyDescriptor != null) {
+							indexedProperties.put(indexedPropertyDescriptor.getName(), indexedPropertyDescriptor);
+						}
+					}
+
+					if (indexedProperties.size() > 0) {
+						indexedPropertiesByName.put(domainClass.getName(), indexedProperties);
+					}
 				}
 			}
 
+			log.debug("registering " + indexedPropertiesByName + " with key " + INDEXED_ENTITIES_GRAILS_APP_CONFIG_KEY);
+			grailsApplication.getConfig().put(INDEXED_ENTITIES_GRAILS_APP_CONFIG_KEY, indexedPropertiesByName);
+			log.debug(
+					"registering " + searchMapping + " with key " + org.hibernate.search.cfg.Environment.MODEL_MAPPING);
 			configuration.getProperties().put(org.hibernate.search.cfg.Environment.MODEL_MAPPING, searchMapping);
 
 		} catch (Exception e) {
@@ -123,5 +153,4 @@ public class HibernateSearchMappingContextConfiguration extends HibernateMapping
 			throw e;
 		}
 	}
-
 }

@@ -1,9 +1,13 @@
 package grails.plugins.hibernate.search
 
+import java.util.Map
+
 import org.hibernate.Session
 import org.hibernate.search.FullTextSession
 import org.hibernate.search.MassIndexer
 import org.hibernate.search.Search
+import org.hibernate.search.cfg.EntityDescriptor
+import org.hibernate.search.cfg.PropertyDescriptor
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,8 +23,11 @@ class HibernateSearchConfig {
 
 	boolean throwExceptionOnEmptyQuery
 	
-    HibernateSearchConfig( Session session ) {
+	Map<String, Map<String, PropertyDescriptor>> indexedPropertiesByEntity;
+	
+    HibernateSearchConfig( Session session, Map<String, Map<String, PropertyDescriptor>> indexedPropertiesByEntity ) {
         this.fullTextSession = Search.getFullTextSession( session )
+		this.indexedPropertiesByEntity = indexedPropertiesByEntity;
     }
 
     /**

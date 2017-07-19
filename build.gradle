@@ -10,9 +10,11 @@ buildscript {
 	}
 }
 
-version "2.1.0"
+version "2.1.1"
 group "org.grails.plugins"
 
+apply plugin: 'java'
+apply plugin: 'groovy'
 apply plugin:"eclipse"
 apply plugin:"idea"
 apply plugin:"org.grails.grails-plugin"
@@ -74,7 +76,7 @@ dependencies {
 	testRuntime "net.sourceforge.htmlunit:htmlunit:2.18"
 	
 	groovydocconf 'org.fusesource.jansi:jansi:1.13'
-	groovydocconf 'org.codehaus.groovy:groovy-all:2.4.7'
+	groovydocconf 'org.codehaus.groovy:groovy-all:2.4.10'
 
 }
 
@@ -132,6 +134,9 @@ if (project.hasProperty('hibernateSearchMavenUser') && project.hasProperty('hibe
 
 assets { packagePlugin = true }
 
-task dumpDependencies << {
-	configurations.compile.each { println it }
+task dumpDependencies {
+    doLast {
+        configurations.compile.each { println it }
+    }
 }
+

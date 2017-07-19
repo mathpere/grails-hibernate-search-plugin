@@ -29,13 +29,15 @@ import org.hibernate.search.Search
 import org.hibernate.search.exception.EmptyQueryException;
 import org.hibernate.search.query.dsl.FieldCustomization
 import org.hibernate.search.query.dsl.QueryBuilder
+import org.hibernate.search.cfg.PropertyDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.hibernate.search.query.dsl.FuzzyContext
 
+import grails.core.GrailsDomainClass
 import grails.plugins.*;
 
-class HibernateSearchQueryBuilder {
+class HibernateSearchApi {
 	
 	private final static Logger log = LoggerFactory.getLogger(this)
 
@@ -248,7 +250,8 @@ class HibernateSearchQueryBuilder {
 	private final HibernateSearchConfig pluginConfig;
 	
     private final FullTextSession fullTextSession
-    private final clazz
+    private final GrailsDomainClass domainClass
+    private final Class clazz
     private final instance
     private final staticContext
 
@@ -269,16 +272,17 @@ class HibernateSearchQueryBuilder {
 
     Filter filter
 
-    HibernateSearchQueryBuilder( clazz, instance, Session session, HibernateSearchConfig pluginConfig ) {
-        this.clazz = clazz
+    HibernateSearchApi( GrailsDomainClass domainClass, instance, Session session, HibernateSearchConfig pluginConfig ) {
+    	this.domainClass = domainClass
+        this.clazz = domainClass.clazz
         this.fullTextSession = Search.getFullTextSession( session )
         this.instance = instance
         this.staticContext = instance == null
 		this.pluginConfig = pluginConfig;
     }
 
-    HibernateSearchQueryBuilder( clazz, Session session, HibernateSearchConfig pluginConfig ) {
-        this( clazz, null, session, pluginConfig )
+    HibernateSearchApi( GrailsDomainClass domainClass, Session session, HibernateSearchConfig pluginConfig ) {
+        this( domainClass, null, session, pluginConfig )
     }
 
     private FullTextQuery createFullTextQuery( ) {
@@ -560,4 +564,8 @@ class HibernateSearchQueryBuilder {
         callable.resolveStrategy = Closure.DELEGATE_FIRST
         callable.call()
     }
+	
+	Map<String, PropertyDescriptor> getIndexedProperties() {
+		return this.pluginConfig.getIndexedPropertiesByEntity().get(domainClass.getName());
+	}
 }
