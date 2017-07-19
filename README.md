@@ -3,7 +3,7 @@
 This plugin aims to integrate Hibernate Search features to Grails in very few steps.
 
 - [Grails Hibernate Search Plugin](#grails-hibernate-search-plugin)
-  * [Quick start](#quick-start)
+  * [Getting started](#getting-started)
     + [Configuration](#configuration)
     + [Indexing](#indexing)
     + [Search](#search)
@@ -17,7 +17,7 @@ This plugin aims to integrate Hibernate Search features to Grails in very few st
 
 
 
-## Quick start
+## Getting started
 
 Add the following repository
 ```
