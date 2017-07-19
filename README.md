@@ -23,7 +23,7 @@ If you don't want to start from the [template project](#examples), you could sta
 
 Add the following repository
 ```
-  maven { url  "http://idcapture.bintray.com/plugins" }
+  repositories { maven { url "http://dl.bintray.com/lgrignon/plugins" } }
 ```
 
 And add the following to your dependencies
