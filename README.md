@@ -2,6 +2,21 @@
 
 This plugin aims to integrate Hibernate Search features to Grails in very few steps.
 
+- [Grails Hibernate Search Plugin](#grails-hibernate-search-plugin)
+  * [Quick start](#quick-start)
+    + [Configuration](#configuration)
+    + [Indexing](#indexing)
+    + [Search](#search)
+    + [Analysis](#analysis)
+    + [Filters](#filters)
+    + [Options](#options)
+  * [Examples](#examples)
+  * [Change log](#change-log)
+  * [Authors](#authors)
+  * [License](#license)
+
+
+
 ## Quick start
 
 Add the following repository
@@ -622,6 +637,12 @@ grails.plugins.hibernatesearch = {
 	fullTextFilter /* ... */ // see related section above
 }
 ```
+
+## Examples
+A sample project is available at this repository URL
+https://github.com/lgrignon/grails3-quick-start
+
+It contains several branches for each version of this plugin
 
 ## Change log
 
