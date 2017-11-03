@@ -3,6 +3,7 @@ package grails.plugins.hibernate.search
 import org.grails.core.util.ClassPropertyFetcher
 import org.grails.orm.hibernate.HibernateDatastore
 import org.grails.orm.hibernate.cfg.HibernateMappingContext;
+import org.grails.orm.hibernate.cfg.HibernateMappingContextConfiguration
 import org.hibernate.Session
 import org.hibernate.search.annotations.Indexed
 import org.hibernate.search.cfg.PropertyDescriptor
@@ -49,10 +50,24 @@ class HibernateSearchGrailsPlugin extends Plugin {
 	Closure doWithSpring() { {
 
 			->
-
-			Class configClass = grails.plugins.hibernate.search.HibernateSearchMappingContextConfiguration.class;
-			log.info "plugin ready - forcing hibernate configClass to $configClass"
+			
 			HibernateSearchMappingContextConfiguration.grailsApplication = grailsApplication;
+
+			Class pluginConfigClass = HibernateSearchMappingContextConfiguration.class;
+			Class projectConfigClass	 = grailsApplication.config.hibernate?.configClass ?: null;
+			log.info "plugin ready - forcing hibernate configClass to $pluginConfigClass (mixin with ${projectConfigClass})"
+			
+			Class configClass = pluginConfigClass;
+			if (projectConfigClass != null) {
+				if (!HibernateMappingContextConfiguration.class.isAssignableFrom(projectConfigClass)) {
+					log.warn "project's hibernate.configClass ($projectConfigClass) should inherit ${HibernateMappingContextConfiguration.class.getName()}"
+				}
+				
+				log.debug "configClass = $pluginConfigClass .mixin($projectConfigClass)";
+				HibernateSearchMappingContextConfiguration.metaClass.mixin(projectConfigClass)
+				
+				configClass = HibernateSearchMappingContextConfiguration.class;
+			}
 
 			grailsApplication.config.hibernate.configClass = configClass;
 		}

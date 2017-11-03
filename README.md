@@ -13,6 +13,7 @@ This plugin aims to integrate Hibernate Search features to Grails in very few st
   * [Examples](#examples)
   * [Change log](#change-log)
   * [Authors](#authors)
+  * [Development / Contribution](#development-contribution)
   * [License](#license)
 
 
@@ -653,6 +654,9 @@ It contains several branches for each version of this plugin
 
 ## Change log
 
+### v2.1.2
+* Supports configClass if any
+
 ### v2.1 
 * Grails 3.2.x
 * GORM 6
@@ -688,6 +692,14 @@ Support for indexing inherited properties
 **Louis Grignon**
 
 + https://github.com/lgrignon
+
+## Development / Contribution
+
+Install with:
+```
+gradlew clean publishToMavenLocal
+```
+
 
 Publish with:
 ```

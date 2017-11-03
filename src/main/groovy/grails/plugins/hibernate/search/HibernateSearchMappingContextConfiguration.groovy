@@ -56,7 +56,7 @@ public class HibernateSearchMappingContextConfiguration extends HibernateMapping
 	public SessionFactory buildSessionFactory() throws HibernateException {
 		Configuration configuration = this;
 
-		log.info("configuration extension for hibernate search: " + configuration);
+		log.info("************** buildSessionFactory() in Hibernate Search extension: $configuration **************");
 
 		try {
 
