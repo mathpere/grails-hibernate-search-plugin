@@ -51,25 +51,23 @@ class HibernateSearchGrailsPlugin extends Plugin {
 
 			->
 			
-			HibernateSearchMappingContextConfiguration.grailsApplication = grailsApplication;
-
-			Class pluginConfigClass = HibernateSearchMappingContextConfiguration.class;
-			Class projectConfigClass	 = grailsApplication.config.hibernate?.configClass ?: null;
-			log.info "plugin ready - forcing hibernate configClass to $pluginConfigClass (mixin with ${projectConfigClass})"
+			Class projectConfigClass = grailsApplication.config.hibernate?.configClass ?: null;
 			
-			Class configClass = pluginConfigClass;
+			Class delegateConfigClass = HibernateMappingContextConfiguration.class;
 			if (projectConfigClass != null) {
 				if (!HibernateMappingContextConfiguration.class.isAssignableFrom(projectConfigClass)) {
 					log.warn "project's hibernate.configClass ($projectConfigClass) should inherit ${HibernateMappingContextConfiguration.class.getName()}"
 				}
 				
-				log.debug "configClass = $pluginConfigClass .mixin($projectConfigClass)";
-				HibernateSearchMappingContextConfiguration.metaClass.mixin(projectConfigClass)
-				
-				configClass = HibernateSearchMappingContextConfiguration.class;
+				delegateConfigClass = projectConfigClass;
 			}
 
-			grailsApplication.config.hibernate.configClass = configClass;
+			HibernateMappingContextConfigurationDelegate.grailsApplication = grailsApplication;
+			HibernateMappingContextConfigurationDelegate.delegateConfigClass = delegateConfigClass;
+			
+			log.info "plugin ready - hibernate configClass delegated to $delegateConfigClass"
+			
+			grailsApplication.config.hibernate.configClass = HibernateMappingContextConfigurationDelegate.class;
 		}
 	}
 

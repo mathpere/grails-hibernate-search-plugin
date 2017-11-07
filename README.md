@@ -655,7 +655,8 @@ It contains several branches for each version of this plugin
 ## Change log
 
 ### v2.1.2
-* Supports configClass if any
+* Supports hibernate.configClass if any
+* Removed dependencies to info.app.grailsVersion, info.app.name
 
 ### v2.1 
 * Grails 3.2.x
