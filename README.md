@@ -654,6 +654,12 @@ It contains several branches for each version of this plugin
 
 ## Change log
 
+### v2.2
+* Grails 3.3.x
+* GORM 6.1
+* Hibernate 5.2.9
+* Hibernate Search 5.7
+
 ### v2.1.2
 * Supports hibernate.configClass if any
 * Removed dependencies to info.app.grailsVersion, info.app.name

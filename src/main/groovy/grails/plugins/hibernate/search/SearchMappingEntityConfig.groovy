@@ -24,6 +24,7 @@ import org.hibernate.search.cfg.DocumentIdMapping;
 import org.hibernate.search.cfg.EntityDescriptor
 import org.hibernate.search.cfg.EntityMapping
 import org.hibernate.search.cfg.FieldMapping;
+import org.hibernate.search.cfg.IndexEmbeddedMapping
 import org.hibernate.search.cfg.PropertyMapping;
 import org.hibernate.search.cfg.SearchMapping
 import org.slf4j.Logger
@@ -32,8 +33,6 @@ import org.slf4j.LoggerFactory;
 import java.lang.annotation.ElementType
 import java.lang.reflect.Field;
 
-import grails.core.GrailsDomainClass
-import grails.core.GrailsDomainClassProperty;
 import grails.plugins.*;
 
 class SearchMappingEntityConfig {
@@ -44,18 +43,21 @@ class SearchMappingEntityConfig {
 
     def analyzer
 
-    def mapping
-    private final GrailsDomainClass domainClass
+    private final DocumentIdMapping mapping
+    private final Class<?> domainClass
 	
 	private final EntityMapping entityMapping
     private final SearchMapping searchMapping
+	private final List<String> indexedPropertyNames;
 
-    public SearchMappingEntityConfig( SearchMapping searchMapping, GrailsDomainClass domainClass ) {
+    public SearchMappingEntityConfig( SearchMapping searchMapping, Class<?> domainClass ) {
         this.domainClass = domainClass
 		
 		this.searchMapping = searchMapping;
-        this.entityMapping = searchMapping.entity( domainClass.getClazz() )
+        this.entityMapping = searchMapping.entity( domainClass )
         this.mapping = entityMapping.indexed().property( IDENTITY, ElementType.FIELD ).documentId()
+		
+		this.indexedPropertyNames = new LinkedList<>();
 		
     }
 
@@ -75,42 +77,45 @@ class SearchMappingEntityConfig {
 
 			log.debug "adding indexEmbedded property: " + name
 			
-            mapping = mapping.property( name, ElementType.FIELD ).indexEmbedded()
+            IndexEmbeddedMapping propertyMapping = mapping.property( name, ElementType.FIELD ).indexEmbedded()
 
             if ( args.indexEmbedded instanceof Map ) {
                 def depth = args.indexEmbedded["depth"]
                 if ( depth ) {
-                    mapping = mapping.depth( depth )
+                    propertyMapping.depth( depth )
                 }
 				
 				def includeEmbeddedObjectId = args.indexEmbedded["includeEmbeddedObjectId"]
 				if ( includeEmbeddedObjectId ) {
-					mapping = mapping.includeEmbeddedObjectId(includeEmbeddedObjectId)
+					propertyMapping.includeEmbeddedObjectId(includeEmbeddedObjectId)
 				}
             }
+			
+			indexedPropertyNames.add(name);
+			
         } else if ( args.containedIn ) {
 
 			log.debug "adding containedIn property: " + name
 		
-            mapping = mapping.property( name, ElementType.FIELD ).containedIn()
-
+            mapping.property( name, ElementType.FIELD ).containedIn()
+	
+			indexedPropertyNames.add(name);
+					
         } else {
 		
 			log.debug "adding indexed property: " + name
 
-			GrailsDomainClassProperty property = domainClass.getPersistentProperty(name);
-		
 			Field backingField = null;
 			
 			// try to find the field in the parent class hierarchy (starting from domain class itself)
-			Class currentDomainClass = domainClass.getClazz();
+			Class currentDomainClass = domainClass;
 			while (currentDomainClass != null) {
 				try {
-					backingField = currentDomainClass.getDeclaredField(property.getName());
+					backingField = currentDomainClass.getDeclaredField(name);
 					break;
 				} catch (NoSuchFieldException e) {
 					// and in groovy's traits
-					backingField = currentDomainClass.getDeclaredFields().find { field -> field.getName().endsWith('__' + property.getName()) };
+					backingField = currentDomainClass.getDeclaredFields().find { field -> field.getName().endsWith('__' + name) };
 					if (backingField != null) {
 						break;
 					}
@@ -128,8 +133,12 @@ class SearchMappingEntityConfig {
 			
 			EntityMapping targetEntityMapping = mapping.entity( currentDomainClass );
 
-			FieldMapping fieldMapping = targetEntityMapping.property( backingField.getName(), ElementType.FIELD ).field().name( args.name ?: name )
+			String fieldName = backingField.getName();
+			FieldMapping fieldMapping = targetEntityMapping.property( fieldName, ElementType.FIELD ).field().name( args.name ?: name )
             registerIndexedProperty(fieldMapping, args)
+			
+			indexedPropertyNames.add(fieldName);
+			
         }
     }
 	
@@ -189,7 +198,11 @@ class SearchMappingEntityConfig {
 		}
 	}
 	
-	public EntityDescriptor getEntityDescriptor() {
-		return searchMapping.getEntity( domainClass.getClazz() )
+	EntityDescriptor getEntityDescriptor() {
+		return searchMapping.getEntity( domainClass )
+	}
+	
+	List<String> getIndexedPropertyNames() {
+		return indexedPropertyNames;
 	}
 }

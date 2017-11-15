@@ -113,17 +113,17 @@ public class HibernateSearchConfigurationInterceptor {
 
 				if (searchClosure != null) {
 					SearchMappingEntityConfig searchMappingEntityConfig = new SearchMappingEntityConfig(searchMapping,
-							domainClass);
+							domainClass.getClazz());
 
 					searchClosure.setDelegate(searchMappingEntityConfig);
 					searchClosure.setResolveStrategy(Closure.DELEGATE_FIRST);
 					searchClosure.call();
 
 					Map<String, PropertyDescriptor> indexedProperties = new HashMap<>();
-					for (GrailsDomainClassProperty property : domainClass.getPersistentProperties()) {
+					for (String indexedPropertyName : searchMappingEntityConfig.getIndexedPropertyNames()) {
 						PropertyDescriptor indexedPropertyDescriptor = searchMapping
 								.getEntityDescriptor(domainClass.getClazz())
-								.getPropertyDescriptor(property.getName(), ElementType.FIELD);
+								.getPropertyDescriptor(indexedPropertyName, ElementType.FIELD);
 						if (indexedPropertyDescriptor != null) {
 							indexedProperties.put(indexedPropertyDescriptor.getName(), indexedPropertyDescriptor);
 						}

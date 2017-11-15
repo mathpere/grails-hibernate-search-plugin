@@ -6,11 +6,11 @@ buildscript {
 	}
 	dependencies {
 		classpath "org.grails:grails-gradle-plugin:$grailsVersion"
-		classpath "com.bertramlabs.plugins:asset-pipeline-gradle:2.8.2"
+		classpath "com.bertramlabs.plugins:asset-pipeline-gradle:2.14.4"
 	}
 }
 
-version "2.1.2"
+version "2.2.0"
 group "org.grails.plugins"
 
 apply plugin: 'java'
@@ -56,7 +56,6 @@ dependencies {
 	compile "org.grails.plugins:cache"
 	compile "org.grails.plugins:scaffolding"
 
-	// GORM 6
 	compile "org.grails.plugins:hibernate5:6.1.4"
 	compile 'org.grails.plugins:cache'
 	
@@ -69,7 +68,7 @@ dependencies {
 	profile "org.grails.profiles:web-plugin"
 	provided "org.grails:grails-plugin-services"
 	provided "org.grails:grails-plugin-domain-class"
-	runtime "com.bertramlabs.plugins:asset-pipeline-grails:2.8.2"
+	runtime "com.bertramlabs.plugins:asset-pipeline-grails:2.14.4"
 	testCompile "org.grails:grails-plugin-testing"
 	testCompile "org.grails.plugins:geb"
 	testRuntime "org.seleniumhq.selenium:selenium-htmlunit-driver:2.47.1"
@@ -83,7 +82,6 @@ dependencies {
 grailsPublish {
 	// user/key: useless, see https://medium.com/@benorama/how-to-publish-your-grails-3-plugin-to-bintray-c341b24f567d#.elz43j5nq
 	user = 'lgrignon'
-//	key = '????'
 	githubSlug = 'mathpere/grails-hibernate-search-plugin'
 	license { name = 'Apache-2.0' }
 	title = "Grails Hibernate Search Plugin"
