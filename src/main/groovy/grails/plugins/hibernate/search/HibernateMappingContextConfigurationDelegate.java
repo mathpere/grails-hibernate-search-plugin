@@ -54,7 +54,7 @@ import grails.core.GrailsApplication;
 @SuppressWarnings("all")
 public class HibernateMappingContextConfigurationDelegate extends HibernateMappingContextConfiguration {
 
-	private final static Logger log = LoggerFactory.getLogger(HibernateSearchConfigurationInterceptor.class);
+	private final static Logger log = LoggerFactory.getLogger(HibernateMappingContextConfigurationDelegate.class);
 
 	static Class<? extends HibernateMappingContextConfiguration> delegateConfigClass;
 	static GrailsApplication grailsApplication;
@@ -138,14 +138,12 @@ public class HibernateMappingContextConfigurationDelegate extends HibernateMappi
 	public SessionFactory buildSessionFactory() throws HibernateException {
 		HibernateSearchConfigurationInterceptor interceptor = new HibernateSearchConfigurationInterceptor(grailsApplication);
 		interceptor.configureHibernateSearch(delegate);
-		
 		return delegate.buildSessionFactory();
 	}
 
 	public SessionFactory buildSessionFactory(ServiceRegistry serviceRegistry) throws HibernateException {
 		HibernateSearchConfigurationInterceptor interceptor = new HibernateSearchConfigurationInterceptor(grailsApplication);
 		interceptor.configureHibernateSearch(delegate);
-		
 		return delegate.buildSessionFactory(serviceRegistry);
 	}
 
