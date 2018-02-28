@@ -424,7 +424,9 @@ MyDomainClass.search().list {
 
 ##### Fuzzy search
 
-On fuzzy search, you can add an optional parameter to specify the threshold limit
+On fuzzy search, you can add an optional parameter to specify the max distance
+
+See https://lucene.apache.org/core/5_5_4/core/org/apache/lucene/search/FuzzyQuery.html#FuzzyQuery(org.apache.lucene.index.Term,%20int,%20int,%20int,%20boolean)
 
 ```groovy
 
@@ -432,7 +434,7 @@ MyDomainClass.search().list {
 
    keyword "status", Status.DISABLED, [ignoreAnalyzer: true]
 
-   fuzzy "description", "hellow", [ignoreFieldBridge: true, threshold: 0.8f]
+   fuzzy "description", "hellow", [ignoreFieldBridge: true, maxDistance: 2]
 
 }
 ```

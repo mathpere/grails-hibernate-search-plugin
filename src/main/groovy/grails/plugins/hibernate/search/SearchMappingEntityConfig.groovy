@@ -76,8 +76,18 @@ class SearchMappingEntityConfig {
         if ( args.indexEmbedded ) {
 
 			log.debug "adding indexEmbedded property: " + name
+
+			Field backingField = findField(name);
+			if (backingField == null) {
+				log.warn "indexed property not found! name=" + name + " entity=" + domainClass
+				return;
+			}
 			
-            IndexEmbeddedMapping propertyMapping = mapping.property( name, ElementType.FIELD ).indexEmbedded()
+			log.debug "> property " + backingField.getDeclaringClass() + ".$name found";
+			EntityMapping targetEntityMapping = mapping.entity( backingField.getDeclaringClass() );
+
+			String fieldName = backingField.getName();
+            IndexEmbeddedMapping propertyMapping = targetEntityMapping.property( fieldName, ElementType.FIELD ).indexEmbedded()
 
             if ( args.indexEmbedded instanceof Map ) {
                 def depth = args.indexEmbedded["depth"]
@@ -105,25 +115,7 @@ class SearchMappingEntityConfig {
 		
 			log.debug "adding indexed property: " + name
 
-			Field backingField = null;
-			
-			// try to find the field in the parent class hierarchy (starting from domain class itself)
-			Class currentDomainClass = domainClass;
-			while (currentDomainClass != null) {
-				try {
-					backingField = currentDomainClass.getDeclaredField(name);
-					break;
-				} catch (NoSuchFieldException e) {
-					// and in groovy's traits
-					backingField = currentDomainClass.getDeclaredFields().find { field -> field.getName().endsWith('__' + name) };
-					if (backingField != null) {
-						break;
-					}
-					
-					currentDomainClass = currentDomainClass.getSuperclass(); 
-				}
-			}
-			
+			Field backingField = findField(name);
 			if (backingField == null) {
 				log.warn "indexed property not found! name=" + name + " entity=" + domainClass
 				return;
@@ -131,7 +123,7 @@ class SearchMappingEntityConfig {
 			
 			log.debug "> property " + backingField.getDeclaringClass() + ".$name found";
 			
-			EntityMapping targetEntityMapping = mapping.entity( currentDomainClass );
+			EntityMapping targetEntityMapping = mapping.entity( backingField.getDeclaringClass() );
 
 			String fieldName = backingField.getName();
 			FieldMapping fieldMapping = targetEntityMapping.property( fieldName, ElementType.FIELD ).field().name( args.name ?: name )
@@ -141,6 +133,29 @@ class SearchMappingEntityConfig {
 			
         }
     }
+	
+	private Field findField(String name) {
+		Field backingField;
+		
+		// try to find the field in the parent class hierarchy (starting from domain class itself)
+		Class currentDomainClass = domainClass;
+		while (currentDomainClass != null) {
+			try {
+				backingField = currentDomainClass.getDeclaredField(name);
+				break;
+			} catch (NoSuchFieldException e) {
+				// and in groovy's traits
+				backingField = currentDomainClass.getDeclaredFields().find { field -> field.getName().endsWith('__' + name) };
+				if (backingField != null) {
+					break;
+				}
+				
+				currentDomainClass = currentDomainClass.getSuperclass();
+			}
+		}
+		
+		return backingField;
+	}
 	
 	private void registerIndexedProperty(FieldMapping fieldMapping, args) {
 		

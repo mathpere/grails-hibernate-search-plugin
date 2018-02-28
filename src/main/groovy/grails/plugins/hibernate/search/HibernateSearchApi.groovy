@@ -216,12 +216,14 @@ class HibernateSearchApi {
         def matching
         def threshold
 		def prefixLength
+		int maxDistance
 
         Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
 
         FieldCustomization createFieldCustomization( ) {
             FuzzyContext context = queryBuilder.keyword().fuzzy()
             if (threshold) { context.withThreshold( threshold ) }
+			if (maxDistance) { context.withEditDistanceUpTo( maxDistance ) }
 			if (prefixLength) { context.withPrefixLength( prefixLength ) }
             context.onField( field ) }
     }
