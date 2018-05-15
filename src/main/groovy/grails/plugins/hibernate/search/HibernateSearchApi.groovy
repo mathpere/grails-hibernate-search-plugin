@@ -16,6 +16,7 @@ package grails.plugins.hibernate.search
 
 import grails.core.GrailsClass
 import grails.plugins.hibernate.search.component.*
+import grails.plugins.hibernate.search.config.HibernateSearchConfig
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.search.Sort
 import org.apache.lucene.search.SortField
