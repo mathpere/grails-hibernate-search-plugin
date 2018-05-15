@@ -90,14 +90,6 @@ class HibernateSearchApi {
         this(domainClass, null, session, pluginConfig)
     }
 
-    HibernateSearchApi(Class clazz) {
-        this.clazz = clazz
-        this.fullTextSession = null
-        this.instance = null
-        this.staticContext = true
-        this.pluginConfig = null
-    }
-
     /**
      *
      * @param searchDsl
@@ -152,18 +144,6 @@ class HibernateSearchApi {
         massIndexer.startAndWait()
     }
 
-    void must(Closure arg) {
-        addComposite new MustComponent(queryBuilder: queryBuilder), arg
-    }
-
-    void should(Closure arg) {
-        addComposite new ShouldComponent(queryBuilder: queryBuilder), arg
-    }
-
-    void mustNot(Closure arg) {
-        addComposite new MustNotComponent(queryBuilder: queryBuilder), arg
-    }
-
     void maxResults(int maxResults) {
         this.maxResults = maxResults
     }
@@ -208,7 +188,8 @@ class HibernateSearchApi {
                     break
             }
 
-        } else {
+        }
+        else {
             this.sortType = SORT_TYPES[ClassPropertyFetcher.forClass(clazz).getPropertyType(sort)] ?: SortField.Type.STRING
         }
     }
@@ -255,7 +236,8 @@ class HibernateSearchApi {
     void index() {
         if (!staticContext) {
             fullTextSession.index(instance)
-        } else {
+        }
+        else {
             throw new MissingMethodException('index', getClass(), [] as Object[])
         }
     }
@@ -266,7 +248,8 @@ class HibernateSearchApi {
     void purge() {
         if (!staticContext) {
             fullTextSession.purge(clazz, instance.id as Serializable)
-        } else {
+        }
+        else {
             throw new MissingMethodException('purge', getClass(), [] as Object[])
         }
     }
@@ -287,38 +270,70 @@ class HibernateSearchApi {
         filterDefinitions.put filterName, filterParams
     }
 
-    void below(field, below, Map optionalParams = [:]) {
+    void below(String field, below, Map optionalParams = [:]) {
         addLeaf new BelowComponent([queryBuilder: queryBuilder, field: field, below: below] + optionalParams)
     }
 
-    void above(field, above, Map optionalParams = [:]) {
+    void above(String field, above, Map optionalParams = [:]) {
         addLeaf new AboveComponent([queryBuilder: queryBuilder, field: field, above: above] + optionalParams)
     }
 
-    void between(field, from, to, Map optionalParams = [:]) {
+    void between(String field, from, to, Map optionalParams = [:]) {
         addLeaf new BetweenComponent([queryBuilder: queryBuilder, field: field, from: from, to: to] + optionalParams)
     }
 
-    void keyword(field, matching, Map optionalParams = [:]) {
+    void keyword(String field, matching, Map optionalParams = [:]) {
         addLeaf new KeywordComponent([queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams)
     }
 
-    void fuzzy(field, matching, Map optionalParams = [:]) {
+    void fuzzy(String field, matching, Map optionalParams = [:]) {
         addLeaf new FuzzyComponent([queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams)
     }
 
-    void wildcard(field, matching, Map optionalParams = [:]) {
+    void wildcard(String field, matching, Map optionalParams = [:]) {
         addLeaf new WildcardComponent([queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams)
     }
 
-    void phrase(field, sentence, Map optionalParams = [:]) {
+    void phrase(String field, sentence, Map optionalParams = [:]) {
         addLeaf new PhraseComponent([queryBuilder: queryBuilder, field: field, sentence: sentence] + optionalParams)
+    }
+
+    void simpleQueryString(String queryString, Map optionalParams = [:], String field, String... fields) {
+        addComponent new SimpleQueryStringComponent([queryBuilder: queryBuilder,
+                                                     field       : field, fields: fields,
+                                                     queryString : queryString] + optionalParams)
+    }
+
+    void simpleQueryString(String queryString, String field, float fieldBoost, List<String> fields, float fieldsBoost, Map optionalParams = [:]) {
+        addComponent new SimpleQueryStringComponent([queryBuilder: queryBuilder,
+                                                     field       : field, fieldBoost: fieldBoost,
+                                                     fields      : fields, fieldsBoost: fieldsBoost,
+                                                     queryString : queryString] + optionalParams)
+    }
+
+    void simpleQueryString(String queryString, Map<String, Float> fieldsAndBoost, Map optionalParams = [:]) {
+        addComponent new SimpleQueryStringComponent([queryBuilder  : queryBuilder,
+                                                     fieldsAndBoost: fieldsAndBoost,
+                                                     queryString   : queryString] + optionalParams)
+    }
+
+    void must(Closure arg) {
+        addComposite new MustComponent(queryBuilder: queryBuilder), arg
+    }
+
+    void should(Closure arg) {
+        addComposite new ShouldComponent(queryBuilder: queryBuilder), arg
+    }
+
+    void mustNot(Closure arg) {
+        addComposite new MustNotComponent(queryBuilder: queryBuilder), arg
     }
 
     Object invokeMethod(String name, Object args) {
         if (name in MASS_INDEXER_METHODS) {
             massIndexer = massIndexer.invokeMethod(name, args) as MassIndexer
-        } else {
+        }
+        else {
             throw new MissingMethodException(name, getClass(), args)
         }
     }
@@ -349,7 +364,7 @@ class HibernateSearchApi {
         }
 
         if (criteria) {
-            log.info 'add criteria query: {}', criteria
+            log.debug 'add criteria query: {}', criteria
             query.setCriteriaQuery(criteria)
         }
 
@@ -366,10 +381,14 @@ class HibernateSearchApi {
         currentNode = root
     }
 
-    private void addComposite(Composite composite, Closure arg) {
+    private void addComponent(Component component) {
+        currentNode << component
+    }
 
-        currentNode << composite
-        currentNode = composite
+    private void addComposite(Component component, Closure arg) {
+
+        currentNode << component
+        currentNode = component
 
         invokeClosureNode arg
 

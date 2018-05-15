@@ -4,11 +4,8 @@ import grails.plugins.hibernate.search.HibernateSearchGrailsPlugin
 import org.apache.lucene.search.Query
 import org.hibernate.search.exception.EmptyQueryException
 import org.hibernate.search.query.dsl.BooleanJunction
-import org.hibernate.search.query.dsl.QueryBuilder
 
 abstract class Composite extends Component {
-
-    protected QueryBuilder queryBuilder
 
     /**
      * @return true if composite contains at least one valid (not empty) query
