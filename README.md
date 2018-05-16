@@ -29,6 +29,7 @@ This plugin aims to integrate Hibernate Search features to Grails in very few st
     + [Updating from 2.2 to 2.3](#updating-from-2.2-to-2.3)
     + [runtime.groovy vs application.groovy](#runtime.groovy-vs-application.groovy)
     + [IDE Integration](#ide-integration)
+    + [SessionFactory failures during startup](#sessionfactory-failures-during-startup)
   * [Examples](#examples)
   * [Change log](#change-log)
   * [Authors](#authors)
@@ -786,6 +787,82 @@ class DomainClass {
     }
 }
 ```
+
+### SessionFactory failures during startup
+
+During the SessionFactory build process any exceptions which occur during the HibernateSearch boot sequence
+are silently wrapped and hidden inside the futures.
+This means there will be a particularly helpful exception thrown :
+
+```
+Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'methodValidationPostProcessor' defined in class path resource [org/springframework/boot/autoconfigure/validation/ValidationAutoConfiguration.class]: Unsatisfied dependency expressed through method 'methodValidationPostProcessor' parameter 0; nested exception is org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'hibernateDatastoreServiceRegistry': Cannot resolve reference to bean 'hibernateDatastore' while setting constructor argument; nested exception is org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'hibernateDatastore': Bean instantiation via constructor failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [org.grails.orm.hibernate.HibernateDatastore]: Constructor threw exception; nested exception is java.lang.NullPointerException
+```
+
+which will stacktrace down to :
+
+```
+Caused by: java.lang.NullPointerException: null
+	at org.grails.orm.hibernate.cfg.HibernateMappingContextConfiguration$2.sessionFactoryClosed(HibernateMappingContextConfiguration.java:266)
+	at org.hibernate.internal.SessionFactoryObserverChain.sessionFactoryClosed(SessionFactoryObserverChain.java:61)
+	at org.hibernate.internal.SessionFactoryImpl.close(SessionFactoryImpl.java:756)
+	at org.hibernate.search.hcore.impl.HibernateSearchSessionFactoryObserver.boot(HibernateSearchSessionFactoryObserver.java:134)
+	at org.hibernate.search.hcore.impl.HibernateSearchSessionFactoryObserver.sessionFactoryCreated(HibernateSearchSessionFactoryObserver.java:79)
+	at org.hibernate.internal.SessionFactoryObserverChain.sessionFactoryCreated(SessionFactoryObserverChain.java:35)
+	at org.hibernate.internal.SessionFactoryImpl.<init>(SessionFactoryImpl.java:366)
+	at org.hibernate.boot.internal.SessionFactoryBuilderImpl.build(SessionFactoryBuilderImpl.java:452)
+	at org.hibernate.cfg.Configuration.buildSessionFactory(Configuration.java:710)
+	at org.grails.orm.hibernate.cfg.HibernateMappingContextConfiguration.buildSessionFactory(HibernateMappingContextConfiguration.java:274)
+	at grails.plugins.hibernate.search.context.HibernateSearchMappingContextConfiguration.buildSessionFactory(HibernateSearchMappingContextConfiguration.java:357)
+	at org.grails.orm.hibernate.connections.HibernateConnectionSourceFactory.create(HibernateConnectionSourceFactory.java:86)
+	at org.grails.orm.hibernate.connections.AbstractHibernateConnectionSourceFactory.create(AbstractHibernateConnectionSourceFactory.java:39)
+	at org.grails.orm.hibernate.connections.AbstractHibernateConnectionSourceFactory.create(AbstractHibernateConnectionSourceFactory.java:23)
+	at org.grails.datastore.mapping.core.connections.AbstractConnectionSourceFactory.create(AbstractConnectionSourceFactory.java:64)
+	at org.grails.datastore.mapping.core.connections.AbstractConnectionSourceFactory.create(AbstractConnectionSourceFactory.java:52)
+	at org.grails.datastore.mapping.core.connections.ConnectionSourcesInitializer.create(ConnectionSourcesInitializer.groovy:24)
+	at org.grails.orm.hibernate.HibernateDatastore.<init>(HibernateDatastore.java:196)
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+	at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:423)
+	at org.springsource.loaded.ri.ReflectiveInterceptor.jlrConstructorNewInstance(ReflectiveInterceptor.java:1076)
+	at org.springframework.beans.BeanUtils.instantiateClass(BeanUtils.java:142)
+	... 51 common frames omitted
+```
+
+The actual exception stack is not at all helpful as whilst the actual failure point is in:
+```
+org.hibernate.search.hcore.impl.HibernateSearchSessionFactoryObserver.boot(HibernateSearchSessionFactoryObserver.java:134)
+```
+
+It is masked inside the catch statement at line 127 inside the class, 
+as the finally clause is what results in the above exception stacktrace. 
+
+```java
+public class HibernateSearchSessionFactoryObserver implements SessionFactoryObserver {
+    // ...
+    
+    private synchronized void boot(SessionFactory factory) {
+        try{ 
+            // ...
+        }
+        catch (Throwable t) {
+            extendedSearchIntegratorFuture.completeExceptionally( t );
+            // This will make the SessionFactory abort and close itself
+            throw t;
+        }finally {
+            if ( failedBoot ) {
+                factory.close();
+            }
+        }
+    }
+    
+    // ...
+}
+```
+
+Therefore if you get the above exceptions then drop a debug point at line 130 and then start with a debugger running. 
+The debug point will give you the helpful exception as to why the boot has failed.
+
 
 ## Examples
 A sample project is available at this repository URL
