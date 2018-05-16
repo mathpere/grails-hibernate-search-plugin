@@ -236,12 +236,7 @@ public class HibernateSearchMappingContextConfiguration extends HibernateMapping
     public SessionFactory buildSessionFactory(ServiceRegistry serviceRegistry) throws HibernateException {
         HibernateSearchConfigurationInterceptor interceptor = new HibernateSearchConfigurationInterceptor(grailsApplication);
         interceptor.configureHibernateSearch(delegate);
-        try {
-            return delegate.buildSessionFactory(serviceRegistry);
-        } catch (Exception ex) {
-            log.error("blah 2", ex);
-        }
-        return null;
+        return delegate.buildSessionFactory(serviceRegistry);
     }
 
     public Map<String, SQLFunction> getSqlFunctions() {
@@ -359,13 +354,7 @@ public class HibernateSearchMappingContextConfiguration extends HibernateMapping
     public SessionFactory buildSessionFactory() throws HibernateException {
         HibernateSearchConfigurationInterceptor interceptor = new HibernateSearchConfigurationInterceptor(grailsApplication);
         interceptor.configureHibernateSearch(delegate);
-
-        try {
-            return delegate.buildSessionFactory();
-        } catch (Exception ex) {
-            log.error("blah", ex);
-        }
-        return null;
+        return delegate.buildSessionFactory();
     }
 
     public void setEventListeners(Map<String, Object> listeners) {
