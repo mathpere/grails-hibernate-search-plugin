@@ -14,245 +14,51 @@
  */
 package grails.plugins.hibernate.search
 
-import org.apache.lucene.search.Filter
-import org.apache.lucene.search.Query
+import grails.core.GrailsClass
+import grails.plugins.hibernate.search.component.*
+import grails.plugins.hibernate.search.config.HibernateSearchConfig
+import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.search.Sort
 import org.apache.lucene.search.SortField
 import org.grails.datastore.mapping.reflect.ClassPropertyFetcher
-import org.hibernate.Criteria;
+import org.hibernate.Criteria
 import org.hibernate.Session
-import org.hibernate.criterion.Restrictions;
+import org.hibernate.Transaction
 import org.hibernate.search.FullTextQuery
 import org.hibernate.search.FullTextSession
 import org.hibernate.search.MassIndexer
 import org.hibernate.search.Search
-import org.hibernate.search.exception.EmptyQueryException;
-import org.hibernate.search.query.dsl.FieldCustomization
+import org.hibernate.search.cfg.PropertyDescriptor
+import org.hibernate.search.filter.FullTextFilter
 import org.hibernate.search.query.dsl.QueryBuilder
-import org.hibernate.search.cfg.PropertyDescriptor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.hibernate.search.query.dsl.FuzzyContext
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
-import grails.core.GrailsDomainClass
-import grails.plugins.*;
-
+@SuppressWarnings('GroovyUnusedDeclaration')
 class HibernateSearchApi {
-	
-	private final static Logger log = LoggerFactory.getLogger(this)
 
-    private static final def SORT_TYPES = [( Integer ): SortField.Type.INT,
-            ( Double ): SortField.Type.DOUBLE,
-            ( Float ): SortField.Type.FLOAT,
-            ( String ): SortField.Type.STRING_VAL,
-            ( Long ): SortField.Type.LONG,
-            ( BigDecimal ): SortField.Type.DOUBLE,
+    private final static Logger log = LoggerFactory.getLogger(HibernateSearchApi)
 
-            // see Emmanuel Bernard's comment
-            // https://hibernate.onjira.com/browse/HSEARCH-97
-            ( Date ): SortField.Type.STRING]
+    private static final Map<Object, SortField.Type> SORT_TYPES = [(Integer)   : SortField.Type.INT,
+                                                                   (Double)    : SortField.Type.DOUBLE,
+                                                                   (Float)     : SortField.Type.FLOAT,
+                                                                   (String)    : SortField.Type.STRING_VAL,
+                                                                   (Long)      : SortField.Type.LONG,
+                                                                   (BigDecimal): SortField.Type.DOUBLE,
 
-    private static interface Component {
-        Query createQuery( )
-    }
-
-    private static abstract class Composite implements Component {
-
-        QueryBuilder queryBuilder
-        def parent
-        def children = []
-
-        def leftShift( component ) {
-            assert component instanceof Component: "'component' should be an instance of Component"
-            component.parent = this
-            children << component
-        }
-
-		/**
-		 * @return true if composite contains at least one valid (not empty) query
-		 */
-		protected boolean forEachQuery( Closure action ) {
-			
-			boolean notEmpty = false;
-			if (children) {
-				
-				for (child in children) {
-					try {
-	
-						Query subQuery = child.createQuery();
-						
-						action.delegate = subQuery
-						action.resolveStrategy = Closure.DELEGATE_FIRST
-						action.call(subQuery)
-						notEmpty = true;
-						
-					} catch (EmptyQueryException e) {
-						if (HibernateSearchGrailsPlugin.pluginConfig.throwExceptionOnEmptyQuery) {
-							throw e
-						} else {
-							log.warn 'empty Hibernate search query ignored! ' + child, e
-						}
-					}
-				}
-			
-			}
-			
-			return notEmpty
-		}
-		
-        def toString( indent ) {
-            [( "-" * indent ) + this.class.simpleName, children.collect { it.toString( indent + 1 ) }].flatten().findAll {it}.join( "\n" )
-        }
-    }
-
-    private static abstract class Leaf extends Composite {
-        def field
-
-        def ignoreAnalyzer = false
-        def ignoreFieldBridge = false
-        def boostedTo
-
-        final def leftShift( component ) {
-            throw new UnsupportedOperationException( "${this.class.name} is a leaf" )
-        }
-
-        final Query createQuery( ) {
-            def fieldCustomization = createFieldCustomization()
-
-            if ( ignoreAnalyzer ) { fieldCustomization = fieldCustomization.ignoreAnalyzer() }
-
-            if ( ignoreFieldBridge ) { fieldCustomization = fieldCustomization.ignoreFieldBridge() }
-
-            if ( boostedTo ) { fieldCustomization = fieldCustomization.boostedTo( boostedTo ) }
-
-            createQuery( fieldCustomization )
-        }
-
-        abstract Query createQuery( FieldCustomization fieldCustomization )
-
-        abstract FieldCustomization createFieldCustomization( )
-    }
-
-    private static class MustNotComponent extends Composite {
-        Query createQuery( ) {
-
-            def query = queryBuilder.bool()
-			boolean notEmpty = forEachQuery { subQuery ->
-				query = query.must( subQuery ).not()
-			}
-
-			if (notEmpty) {
-				return query.createQuery()
-			} else {
-				return queryBuilder.all().createQuery()
-			}
-			
-        }
-    }
-    private static class MustComponent extends Composite {
-        Query createQuery( ) {
-            def query = queryBuilder.bool()
-			boolean notEmpty = forEachQuery { subQuery ->
-				query = query.must( subQuery )
-			}
-
-			if (notEmpty) {
-				return query.createQuery()
-			} else {
-				return queryBuilder.all().createQuery()
-			}
-        }
-    }
-
-    private static class ShouldComponent extends Composite {
-        Query createQuery( ) {
-            def query = queryBuilder.bool()
-			boolean notEmpty = forEachQuery { subQuery ->
-				query = query.should( subQuery )
-			}
-
-			if (notEmpty) {
-				return query.createQuery()
-			} else {
-				return queryBuilder.all().createQuery()
-			}
-        }
-    }
-
-    private static class BelowComponent extends Leaf {
-        def below
-
-        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.below( below ).createQuery() }
-
-        FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
-    }
-
-    private static class AboveComponent extends Leaf {
-        def above
-
-        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.above( above ).createQuery() }
-
-        FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
-    }
-
-    private static class KeywordComponent extends Leaf {
-        def matching
-
-        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
-
-        FieldCustomization createFieldCustomization( ) { queryBuilder.keyword().onField( field ) }
-    }
-
-    private static class BetweenComponent extends Leaf {
-        def from
-        def to
-
-        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.from( from ).to( to ).createQuery() }
-
-        FieldCustomization createFieldCustomization( ) { queryBuilder.range().onField( field ) }
-    }
-
-    private static class FuzzyComponent extends Leaf {
-        def matching
-        def threshold
-		def prefixLength
-		int maxDistance
-
-        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
-
-        FieldCustomization createFieldCustomization( ) {
-            FuzzyContext context = queryBuilder.keyword().fuzzy()
-            if (threshold) { context.withThreshold( threshold ) }
-			if (maxDistance) { context.withEditDistanceUpTo( maxDistance ) }
-			if (prefixLength) { context.withPrefixLength( prefixLength ) }
-            context.onField( field ) }
-    }
-
-    private static class WildcardComponent extends Leaf {
-        def matching
-
-        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.matching( matching ).createQuery() }
-
-        FieldCustomization createFieldCustomization( ) { queryBuilder.keyword().wildcard().onField( field ) }
-    }
-
-    private static class PhraseComponent extends Leaf {
-        def sentence
-
-        Query createQuery( FieldCustomization fieldCustomization ) { fieldCustomization.sentence( sentence ).createQuery() }
-
-        FieldCustomization createFieldCustomization( ) { queryBuilder.phrase().onField( field ) }
-    }
+                                                                   // see Emmanuel Bernard's comment
+                                                                   // https://hibernate.onjira.com/browse/HSEARCH-97
+                                                                   (Date)      : SortField.Type.STRING,
+    ]
 
     private static final String ASC = 'asc'
     private static final String DESC = 'desc'
 
-    private static final List MASS_INDEXER_METHODS = MassIndexer.methods.findAll { it.returnType == MassIndexer }*.name
+    private static final List MASS_INDEXER_METHODS = MassIndexer.methods.findAll {it.returnType == MassIndexer}*.name
 
-	private final HibernateSearchConfig pluginConfig;
-	
+    private final HibernateSearchConfig pluginConfig
+
     private final FullTextSession fullTextSession
-    private final GrailsDomainClass domainClass
     private final Class clazz
     private final instance
     private final staticContext
@@ -260,67 +66,28 @@ class HibernateSearchApi {
     private QueryBuilder queryBuilder
     private MassIndexer massIndexer
 
-    private def sort
-    private def sortType
-    private def reverse = false
-    private def maxResults = 0
-    private def offset = 0
-    private def filterDefinitions = [:]
-    private def projection = []
-	private def criteria
-	
-    private def root
-    private def currentNode
+    private String sort
+    private SortField.Type sortType
+    private Boolean reverse = false
+    private Integer maxResults = 0
+    private Integer offset = 0
+    private final Map<String, Map<String, Object>> filterDefinitions = [:]
+    private final List projection = []
+    private Criteria criteria
 
-    Filter filter
+    private Component root
+    private Component currentNode
 
-    HibernateSearchApi( GrailsDomainClass domainClass, instance, Session session, HibernateSearchConfig pluginConfig ) {
-    	this.domainClass = domainClass
+    HibernateSearchApi(GrailsClass domainClass, instance, Session session, HibernateSearchConfig pluginConfig) {
         this.clazz = domainClass.clazz
-        this.fullTextSession = Search.getFullTextSession( session )
+        this.fullTextSession = Search.getFullTextSession(session)
         this.instance = instance
         this.staticContext = instance == null
-		this.pluginConfig = pluginConfig;
+        this.pluginConfig = pluginConfig
     }
 
-    HibernateSearchApi( GrailsDomainClass domainClass, Session session, HibernateSearchConfig pluginConfig ) {
-        this( domainClass, null, session, pluginConfig )
-    }
-
-    private FullTextQuery createFullTextQuery( ) {
-        def query = fullTextSession.createFullTextQuery( root.createQuery(), clazz )
-
-        filterDefinitions?.each { filterName, filterParams ->
-
-            def filter = query.enableFullTextFilter( filterName )
-
-            filterParams?.each { k, v ->
-                filter.setParameter( k, v )
-            }
-        }
-
-        if ( filter ) {
-            query.filter = filter
-        }
-		
-		if ( criteria ) {
-			
-			log.info "add criteria query: " + criteria
-			
-			query.setCriteriaQuery(criteria);
-		}
-		
-        if ( projection ) {
-            query.setProjection projection as String[]
-        }
-
-        query
-    }
-
-    private initQueryBuilder( ) {
-        queryBuilder = fullTextSession.searchFactory.buildQueryBuilder().forEntity( clazz ).get()
-        root = new MustComponent( queryBuilder: queryBuilder )
-        currentNode = root
+    HibernateSearchApi(GrailsClass domainClass, Session session, HibernateSearchConfig pluginConfig) {
+        this(domainClass, null, session, pluginConfig)
     }
 
     /**
@@ -328,7 +95,7 @@ class HibernateSearchApi {
      * @param searchDsl
      * @return the results for this search
      */
-    def list( searchDsl = null ) {
+    List list(@DelegatesTo(HibernateSearchApi) Closure searchDsl = null) {
 
         initQueryBuilder()
 
@@ -336,14 +103,14 @@ class HibernateSearchApi {
 
         FullTextQuery fullTextQuery = createFullTextQuery()
 
-        if ( maxResults > 0 ) {
+        if (maxResults > 0) {
             fullTextQuery.maxResults = maxResults
         }
 
         fullTextQuery.firstResult = offset
 
-        if ( sort ) {
-            fullTextQuery.sort = new Sort( new SortField( sort, sortType, reverse ) )
+        if (sort) {
+            fullTextQuery.sort = new Sort(new SortField(sort, sortType, reverse))
         }
 
         fullTextQuery.list()
@@ -354,7 +121,7 @@ class HibernateSearchApi {
      * @param searchDsl
      * @return the number of hits for this search.
      */
-    def count( Closure searchDsl = null ) {
+    int count(@DelegatesTo(HibernateSearchApi) Closure searchDsl = null) {
 
         initQueryBuilder()
 
@@ -368,71 +135,45 @@ class HibernateSearchApi {
      *
      * @param massIndexerDsl
      */
-    def createIndexAndWait( Closure massIndexerDsl = null ) {
+    void createIndexAndWait(@DelegatesTo(HibernateSearchApi) Closure massIndexerDsl = null) {
 
-        massIndexer = fullTextSession.createIndexer( clazz )
+        massIndexer = fullTextSession.createIndexer(clazz)
 
         invokeClosureNode massIndexerDsl
 
         massIndexer.startAndWait()
     }
 
-    private addComposite( Composite composite, Closure arg ) {
-
-        currentNode << composite
-        currentNode = composite
-
-        invokeClosureNode arg
-
-        currentNode = currentNode?.parent ?: root
-    }
-
-    private addLeaf( Leaf leaf ) {
-        currentNode << leaf
-    }
-
-    def must( Closure arg ) {
-        addComposite new MustComponent( queryBuilder: queryBuilder ), arg
-    }
-
-    def should( Closure arg ) {
-        addComposite new ShouldComponent( queryBuilder: queryBuilder ), arg
-    }
-
-    def mustNot( Closure arg ) {
-        addComposite new MustNotComponent( queryBuilder: queryBuilder ), arg
-    }
-
-    def maxResults( int maxResults ) {
+    void maxResults(int maxResults) {
         this.maxResults = maxResults
     }
 
-    def offset( int offset ) {
+    void offset(int offset) {
         this.offset = offset
     }
 
-    def projection( String... projection ) {
-        this.projection.addAll( projection )
+    void projection(String... projection) {
+        this.projection.addAll(projection)
     }
-	
-	def criteria( Closure criteria ) {
-		this.criteria = fullTextSession.createCriteria( clazz );
-		
-		criteria.delegate = this.criteria
-		criteria.resolveStrategy = Closure.DELEGATE_FIRST
-		this.criteria = criteria.call()
-		
-		log.debug "setting criteria: " + this.criteria
-	}
 
-    def sort( String field, String order = ASC, type = null ) {
+    void criteria(Closure criteria) {
+        this.criteria = fullTextSession.createCriteria(clazz)
+
+        criteria.delegate = this.criteria
+        criteria.resolveStrategy = Closure.DELEGATE_FIRST
+        this.criteria = criteria.call() as Criteria
+
+        log.debug 'setting criteria: {}', this.criteria
+    }
+
+    void sort(String field, String order = ASC, type = null) {
 
         this.sort = field
         this.reverse = order == DESC
 
-        if ( type ) {
+        if (type) {
 
-            switch ( type.class ) {
+            switch (type.class) {
                 case Class:
                     this.sortType = SORT_TYPES[type]
                     break
@@ -447,8 +188,9 @@ class HibernateSearchApi {
                     break
             }
 
-        } else {
-            this.sortType = SORT_TYPES[ClassPropertyFetcher.forClass( clazz ).getPropertyType( sort )] ?: SortField.Type.STRING
+        }
+        else {
+            this.sortType = SORT_TYPES[ClassPropertyFetcher.forClass(clazz).getPropertyType(sort)] ?: SortField.Type.STRING
         }
     }
 
@@ -458,21 +200,21 @@ class HibernateSearchApi {
      * @param callable a closure which takes an Hibernate Transaction as single argument.
      * @return the result of callable
      */
-    def withTransaction( Closure callable ) {
+    void withTransaction(Closure callable) {
 
-        def transaction = fullTextSession.beginTransaction()
+        Transaction transaction = fullTextSession.beginTransaction()
 
         try {
 
-            def result = callable.call( transaction )
+            def result = callable.call(transaction)
 
-            if ( transaction.isActive() ) {
+            if (transaction.isActive()) {
                 transaction.commit()
             }
 
             result
 
-        } catch ( ex ) {
+        } catch (ex) {
             transaction.rollback()
             throw ex
         }
@@ -482,8 +224,8 @@ class HibernateSearchApi {
      *
      * @return the scoped analyzer for this entity
      */
-    def getAnalyzer( ) {
-        fullTextSession.searchFactory.getAnalyzer( clazz )
+    Analyzer getAnalyzer() {
+        fullTextSession.searchFactory.getAnalyzer(clazz)
     }
 
     /**
@@ -491,83 +233,169 @@ class HibernateSearchApi {
      * Indexation is batched per transaction: if a transaction is active, the operation
      * will not affect the index at least until commit.
      */
-    def index( ) {
-        if ( !staticContext ) {
-            fullTextSession.index( instance )
-        } else {
-            throw new MissingMethodException( "index", getClass(), [] as Object[] )
+    void index() {
+        if (!staticContext) {
+            fullTextSession.index(instance)
+        }
+        else {
+            throw new MissingMethodException('index', getClass(), [] as Object[])
         }
     }
 
     /**
      * Remove the entity from the index.
      */
-    def purge( ) {
-        if ( !staticContext ) {
-            fullTextSession.purge( clazz, instance.id )
-        } else {
-            throw new MissingMethodException( "purge", getClass(), [] as Object[] )
+    void purge() {
+        if (!staticContext) {
+            fullTextSession.purge(clazz, instance.id as Serializable)
+        }
+        else {
+            throw new MissingMethodException('purge', getClass(), [] as Object[])
         }
     }
 
-    def purgeAll( ) {
-        fullTextSession.purgeAll( clazz )
+    void purgeAll() {
+        fullTextSession.purgeAll(clazz)
     }
 
-    def filter( String filterName ) {
+    void filter(String filterName) {
         filterDefinitions.put filterName, null
     }
 
-    def filter( Map filterParams ) {
-        filterDefinitions.put filterParams.name, filterParams.params
+    void filter(Map<String, Object> filterParams) {
+        filterDefinitions.put filterParams.name as String, filterParams.params as Map<String, Object>
     }
 
-    def below( field, below, Map optionalParams = [:] ) {
-        addLeaf new BelowComponent( [queryBuilder: queryBuilder, field: field, below: below] + optionalParams )
+    void filter(String filterName, Map<String, Object> filterParams) {
+        filterDefinitions.put filterName, filterParams
     }
 
-    def above( field, above, Map optionalParams = [:] ) {
-        addLeaf new AboveComponent( [queryBuilder: queryBuilder, field: field, above: above] + optionalParams )
+    void below(String field, below, Map optionalParams = [:]) {
+        addLeaf new BelowComponent([queryBuilder: queryBuilder, field: field, below: below] + optionalParams)
     }
 
-    def between( field, from, to, Map optionalParams = [:] ) {
-        addLeaf new BetweenComponent( [queryBuilder: queryBuilder, field: field, from: from, to: to] + optionalParams )
+    void above(String field, above, Map optionalParams = [:]) {
+        addLeaf new AboveComponent([queryBuilder: queryBuilder, field: field, above: above] + optionalParams)
     }
 
-    def keyword( field, matching, Map optionalParams = [:] ) {
-        addLeaf new KeywordComponent( [queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams )
+    void between(String field, from, to, Map optionalParams = [:]) {
+        addLeaf new BetweenComponent([queryBuilder: queryBuilder, field: field, from: from, to: to] + optionalParams)
     }
 
-    def fuzzy( field, matching, Map optionalParams = [:] ) {
-        addLeaf new FuzzyComponent( [queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams )
+    void keyword(String field, matching, Map optionalParams = [:]) {
+        addLeaf new KeywordComponent([queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams)
     }
 
-    def wildcard( field, matching, Map optionalParams = [:] ) {
-        addLeaf new WildcardComponent( [queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams )
+    void fuzzy(String field, matching, Map optionalParams = [:]) {
+        addLeaf new FuzzyComponent([queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams)
     }
 
-    def phrase( field, sentence, Map optionalParams = [:] ) {
-        addLeaf new PhraseComponent( [queryBuilder: queryBuilder, field: field, sentence: sentence] + optionalParams )
+    void wildcard(String field, matching, Map optionalParams = [:]) {
+        addLeaf new WildcardComponent([queryBuilder: queryBuilder, field: field, matching: matching] + optionalParams)
     }
 
-    Object invokeMethod( String name, Object args ) {
-        if ( name in MASS_INDEXER_METHODS ) {
-            massIndexer = massIndexer.invokeMethod name, args
-        } else {
-            throw new MissingMethodException( name, getClass(), args )
+    void phrase(String field, sentence, Map optionalParams = [:]) {
+        addLeaf new PhraseComponent([queryBuilder: queryBuilder, field: field, sentence: sentence] + optionalParams)
+    }
+
+    void simpleQueryString(String queryString, Map optionalParams = [:], String field, String... fields) {
+        addComponent new SimpleQueryStringComponent([queryBuilder: queryBuilder,
+                                                     field       : field, fields: fields,
+                                                     queryString : queryString] + optionalParams)
+    }
+
+    void simpleQueryString(String queryString, String field, float fieldBoost, List<String> fields, float fieldsBoost, Map optionalParams = [:]) {
+        addComponent new SimpleQueryStringComponent([queryBuilder: queryBuilder,
+                                                     field       : field, fieldBoost: fieldBoost,
+                                                     fields      : fields, fieldsBoost: fieldsBoost,
+                                                     queryString : queryString] + optionalParams)
+    }
+
+    void simpleQueryString(String queryString, Map<String, Float> fieldsAndBoost, Map optionalParams = [:]) {
+        addComponent new SimpleQueryStringComponent([queryBuilder  : queryBuilder,
+                                                     fieldsAndBoost: fieldsAndBoost,
+                                                     queryString   : queryString] + optionalParams)
+    }
+
+    void must(Closure arg) {
+        addComposite new MustComponent(queryBuilder: queryBuilder), arg
+    }
+
+    void should(Closure arg) {
+        addComposite new ShouldComponent(queryBuilder: queryBuilder), arg
+    }
+
+    void mustNot(Closure arg) {
+        addComposite new MustNotComponent(queryBuilder: queryBuilder), arg
+    }
+
+    Object invokeMethod(String name, Object args) {
+        if (name in MASS_INDEXER_METHODS) {
+            massIndexer = massIndexer.invokeMethod(name, args) as MassIndexer
+        }
+        else {
+            throw new MissingMethodException(name, getClass(), args)
         }
     }
 
-    def invokeClosureNode( Closure callable ) {
-        if ( !callable )
+    void invokeClosureNode(@DelegatesTo(HibernateSearchApi) Closure callable) {
+        if (!callable)
             return
 
         callable.delegate = this
         callable.resolveStrategy = Closure.DELEGATE_FIRST
         callable.call()
     }
-	
-	Map<String, PropertyDescriptor> getIndexedProperties() {
-		return this.pluginConfig.getIndexedPropertiesByEntity().get(domainClass.getName());
-	}
+
+    Map<String, PropertyDescriptor> getIndexedProperties() {
+        this.pluginConfig.getIndexedPropertiesByEntity()[clazz.getName()]
+    }
+
+    private FullTextQuery createFullTextQuery() {
+        FullTextQuery query = fullTextSession.createFullTextQuery(root.createQuery(), clazz)
+
+        filterDefinitions?.each {filterName, filterParams ->
+
+            FullTextFilter filter = query.enableFullTextFilter(filterName)
+
+            filterParams?.each {k, v ->
+                filter.setParameter(k, v)
+            }
+        }
+
+        if (criteria) {
+            log.debug 'add criteria query: {}', criteria
+            query.setCriteriaQuery(criteria)
+        }
+
+        if (projection) {
+            query.setProjection projection as String[]
+        }
+
+        query
+    }
+
+    private initQueryBuilder() {
+        queryBuilder = fullTextSession.searchFactory.buildQueryBuilder().forEntity(clazz).get()
+        root = new MustComponent(queryBuilder: queryBuilder)
+        currentNode = root
+    }
+
+    private void addComponent(Component component) {
+        currentNode << component
+    }
+
+    private void addComposite(Component component, Closure arg) {
+
+        currentNode << component
+        currentNode = component
+
+        invokeClosureNode arg
+
+        currentNode = currentNode?.parent ?: root
+    }
+
+    private void addLeaf(Leaf leaf) {
+        currentNode << leaf
+    }
 }
