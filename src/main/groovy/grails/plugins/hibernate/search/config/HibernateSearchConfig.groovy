@@ -24,6 +24,8 @@ class HibernateSearchConfig {
     HibernateSearchConfig(Session session, Map<String, Map<String, PropertyDescriptor>> indexedPropertiesByEntity) {
         this.fullTextSession = Search.getFullTextSession(session)
         this.indexedPropertiesByEntity = indexedPropertiesByEntity
+		
+		log.trace "build HibernateSearchConfig indexedPropertiesByEntity=${indexedPropertiesByEntity}"
     }
 
     /**

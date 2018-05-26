@@ -59,7 +59,8 @@ class HibernateSearchApi {
     private final HibernateSearchConfig pluginConfig
 
     private final FullTextSession fullTextSession
-    private final Class clazz
+	private final GrailsClass grailsDomainClass
+	private final Class clazz
     private final instance
     private final staticContext
 
@@ -79,6 +80,7 @@ class HibernateSearchApi {
     private Component currentNode
 
     HibernateSearchApi(GrailsClass domainClass, instance, Session session, HibernateSearchConfig pluginConfig) {
+		this.grailsDomainClass = domainClass
         this.clazz = domainClass.clazz
         this.fullTextSession = Search.getFullTextSession(session)
         this.instance = instance
@@ -348,7 +350,9 @@ class HibernateSearchApi {
     }
 
     Map<String, PropertyDescriptor> getIndexedProperties() {
-        this.pluginConfig.getIndexedPropertiesByEntity()[clazz.getName()]
+		def indexedPropertiesByEntity = this.pluginConfig.getIndexedPropertiesByEntity();
+		log.debug "HibernateSearchApi.getIndexedProperties indexedProperties entities=${indexedPropertiesByEntity?.keySet()} entity=${grailsDomainClass.getName()}"
+        return indexedPropertiesByEntity[grailsDomainClass.getName()]
     }
 
     private FullTextQuery createFullTextQuery() {
